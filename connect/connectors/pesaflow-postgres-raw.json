@@ -1,0 +1,19 @@
+{
+  "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+  "tasks.max": "1",
+  "database.hostname": "postgres",
+  "database.port": "5432",
+  "database.user": "pesaflow",
+  "database.password": "${env:PESAFLOW_DB_PASSWORD}",
+  "database.dbname": "pesaflow",
+  "topic.prefix": "raw",
+  "plugin.name": "pgoutput",
+  "slot.name": "pesaflow_raw",
+  "publication.name": "pesaflow_cdc",
+  "publication.autocreate.mode": "disabled",
+  "table.include.list": "public\\.(accounts|merchants|transactions)",
+  "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "key.converter.schemas.enable": "false",
+  "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "value.converter.schemas.enable": "false"
+}
