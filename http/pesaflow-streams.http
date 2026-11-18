@@ -1,0 +1,19 @@
+### Pick an account id from the wallet first
+GET http://localhost:8080/accounts?size=1
+
+> {% client.global.set("account", response.body.content[0].id); %}
+
+### Balance (state store: balances)
+GET http://localhost:8082/balances/{{account}}
+
+### Account summary (table-table join: accounts LEFT JOIN balances)
+GET http://localhost:8082/accounts/{{account}}/summary
+
+### Account profile (cogroup of top-ups, P2P sent and merchant payments)
+GET http://localhost:8082/accounts/{{account}}/profile
+
+### Largest transaction (reduce)
+GET http://localhost:8082/accounts/{{account}}/largest-transaction
+
+### Same balance from a second instance (started with --server.port=8086); forwarded if it doesn't own the key
+GET http://localhost:8086/balances/{{account}}
