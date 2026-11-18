@@ -11,6 +11,7 @@ public enum ProblemType {
     DATA_INTEGRITY_VIOLATION("data-integrity-violation", "Request conflicts with existing data", HttpStatus.CONFLICT),
     MALFORMED_REQUEST("malformed-request", "Malformed request", HttpStatus.BAD_REQUEST),
     VALIDATION_FAILED("validation-failed", "Request validation failed", HttpStatus.BAD_REQUEST),
+    SERVICE_UNAVAILABLE("service-unavailable", "Service temporarily unavailable", HttpStatus.SERVICE_UNAVAILABLE),
     INTERNAL_ERROR("internal-error", "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private static final String URN_PREFIX = "urn:pesaflow:problem:";

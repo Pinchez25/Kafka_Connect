@@ -4,6 +4,7 @@ import com.pinchez.common.enums.ProblemType;
 import com.pinchez.common.exception.DomainException;
 import com.pinchez.common.exception.DuplicateResourceException;
 import com.pinchez.common.exception.ResourceNotFoundException;
+import com.pinchez.common.exception.ServiceUnavailableException;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 problem.setProperty("value", e.getValue());
                 yield problem;
             }
+            case ServiceUnavailableException e -> ProblemType.SERVICE_UNAVAILABLE.toProblemDetail(e.getMessage());
         };
     }
 
