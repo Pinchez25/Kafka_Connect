@@ -77,7 +77,7 @@ spotless {
         ktlint()
     }
     format("misc") {
-        target("*.md", "docs/**/*.md", "*.yml", "src/**/*.yaml", "src/**/*.sql", "http/**/*.http", ".gitignore")
+        target("*.md", "docs/**/*.md", "*.yml", "src/**/*.yaml", "src/**/*.sql", "http/**/*.http", ".gitignore", "connect/**")
         trimTrailingWhitespace()
         endWithNewline()
     }
