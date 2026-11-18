@@ -1,6 +1,6 @@
 spring:
   application:
-    name: kafka-connect-demo
+    name: wallet-api
   threads:
     virtual:
       enabled: true

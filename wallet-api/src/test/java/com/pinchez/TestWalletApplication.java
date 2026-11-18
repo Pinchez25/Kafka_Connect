@@ -2,10 +2,10 @@ package com.pinchez;
 
 import org.springframework.boot.SpringApplication;
 
-public class TestKafkaConnectDemoApplication {
+public class TestWalletApplication {
 
     public static void main(String[] args) {
-        SpringApplication.from(KafkaConnectDemoApplication::main)
+        SpringApplication.from(WalletApplication::main)
                 .with(TestcontainersConfiguration.class)
                 .run(args);
     }

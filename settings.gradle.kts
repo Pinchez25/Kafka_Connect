@@ -1,1 +1,3 @@
-rootProject.name = "kafka-connect-demo"
+rootProject.name = "pesaflow"
+
+include("wallet-api")

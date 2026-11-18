@@ -6,9 +6,9 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
-public class KafkaConnectDemoApplication {
+public class WalletApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(KafkaConnectDemoApplication.class, args);
+        SpringApplication.run(WalletApplication.class, args);
     }
 }
