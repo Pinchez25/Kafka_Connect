@@ -20,3 +20,11 @@ spring:
         order_updates: true
   kafka:
     bootstrap-servers: localhost:9092
+
+pesaflow:
+  wallet:
+    currency: KES
+    zone-id: Africa/Nairobi
+    daily-limits:
+      BASIC: 70000
+      FULL: 500000
