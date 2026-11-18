@@ -5,6 +5,7 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Currency;
@@ -25,7 +26,7 @@ public record WalletProperties(
                 ? Map.of()
                 : dailyLimits.entrySet().stream()
                         .collect(Collectors.toUnmodifiableMap(
-                                Map.Entry::getKey, entry -> entry.getValue().setScale(2)));
+                                Map.Entry::getKey, entry -> entry.getValue().setScale(2, RoundingMode.HALF_UP)));
     }
 
     public BigDecimal dailyLimitFor(KycLevel kycLevel) {
