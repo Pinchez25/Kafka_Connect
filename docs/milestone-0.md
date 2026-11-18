@@ -26,7 +26,7 @@ different address per listener. That's why there are two listeners, and it's the
 ## 2. Run the wallet API
 
 ```bash
-./gradlew bootRun
+./gradlew :wallet-api:bootRun
 ```
 
 Flyway creates `accounts`, `merchants` and `transactions`. Try the requests in
@@ -40,7 +40,7 @@ curl -X POST localhost:8080/load-generator/stop
 
 The generator seeds 200 accounts and 30 merchants, then submits 5 transactions a second (60% P2P, 30% merchant payments,
 10% top-ups). Tune it under `pesaflow.load-generator` in
-`application.yaml`.
+`wallet-api/src/main/resources/application.yaml`.
 
 Things worth noticing in the data:
 

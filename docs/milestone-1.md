@@ -19,7 +19,7 @@ converters, Single Message Transforms (SMTs) and predicates reshape records on t
 
 ```bash
 docker compose up -d --build
-./gradlew bootRun
+./gradlew :wallet-api:bootRun
 curl -X POST localhost:8080/load-generator/start
 ./connect/connect.sh apply
 ./connect/connect.sh list
@@ -74,16 +74,17 @@ Things to work out:
 
 Read `pesaflow-postgres-source.json` alongside this section.
 
-**Converters** turn Connect's internal records into bytes. Here both key and value use
-`AvroConverter`, which registers each schema in Schema Registry and prefixes every message
-with a 5-byte schema id:
+**Converters** turn Connect's internal records into bytes. Values use `AvroConverter`, which
+registers each schema in Schema Registry and prefixes every message with a 5-byte schema id.
+Keys use `StringConverter`, so a key is just the UUID's UTF-8 bytes (Milestone 2 explains why):
 
 ```bash
 curl -s localhost:8081/subjects | jq
 curl -s localhost:8081/subjects/pesaflow.transactions-value/versions/latest | jq -r .schema | jq
 docker compose exec schema-registry kafka-avro-console-consumer --bootstrap-server kafka:29092 \
   --topic pesaflow.transactions --from-beginning --max-messages 3 \
-  --property schema.registry.url=http://localhost:8081 --property print.key=true
+  --property schema.registry.url=http://localhost:8081 --property print.key=true \
+  --key-deserializer org.apache.kafka.common.serialization.StringDeserializer
 ```
 
 Note the Debezium semantic types in the schema: `io.debezium.data.Uuid`,
@@ -97,6 +98,7 @@ Note the Debezium semantic types in the schema: `io.debezium.data.Uuid`,
 | `route` (`RegexRouter`) | `pesaflow.public.accounts` → `pesaflow.accounts` |
 | `dropSignals` (`Filter` + `TopicNameMatches`) | drops events from the signal table, which Debezium otherwise emits like any other table |
 | `extractKey` (`ExtractField$Key` + `TopicNameMatches`) | key `{"id": "…"}` → `"…"` on table topics only, because heartbeat records have no `id` field and would fail |
+| `nameAccount`, `nameMerchant`, `nameTransaction` (`SetSchemaMetadata$Value` + `TopicNameMatches`) | renames each value schema from Debezium's `pesaflow.public.<table>.Value` to a contract name such as `com.pinchez.cdc.Transaction` |
 
 **Topic creation** groups: `pesaflow.accounts` and `pesaflow.merchants` are created
 **compacted**, since they hold the latest state per key and will become KTables.
