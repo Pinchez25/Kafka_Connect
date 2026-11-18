@@ -57,19 +57,23 @@ services:
       timeout: 5s
       retries: 10
 
-  connect:
-    image: quay.io/debezium/connect:3.6.1.Final
+  connect: &connect-worker
+    build: ./connect
+    image: pesaflow/connect:3.6.1
     hostname: connect
     depends_on:
       kafka:
+        condition: service_healthy
+      schema-registry:
         condition: service_healthy
       postgres:
         condition: service_healthy
     ports:
       - "8083:8083"
-    environment:
+    environment: &connect-environment
       BOOTSTRAP_SERVERS: kafka:29092
       GROUP_ID: pesaflow-connect
+      ADVERTISED_HOST_NAME: connect
       CONFIG_STORAGE_TOPIC: connect-configs
       OFFSET_STORAGE_TOPIC: connect-offsets
       STATUS_STORAGE_TOPIC: connect-status
@@ -78,12 +82,26 @@ services:
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_EXACTLY_ONCE_SOURCE_SUPPORT: enabled
+      CONNECT_CONFIG_PROVIDERS: env
+      CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
+      PESAFLOW_DB_PASSWORD: pesaflow
     healthcheck:
       test: [ "CMD-SHELL", "curl -sf http://localhost:8083/connectors > /dev/null" ]
       interval: 10s
       timeout: 5s
       retries: 15
       start_period: 20s
+
+  connect-2:
+    <<: *connect-worker
+    hostname: connect-2
+    profiles: [ scale ]
+    ports:
+      - "8084:8083"
+    environment:
+      <<: *connect-environment
+      ADVERTISED_HOST_NAME: connect-2
 
   postgres:
     image: postgres:18-alpine
