@@ -1,23 +1,24 @@
-@namespace("com.pinchez.events")
-protocol TransactionEvents {
+namespace com.pinchez.events;
 
-    enum TransactionType {
-        P2P,
-        TOPUP,
-        MERCHANT_PAYMENT
-    }
+// Optional: main schema (using it creates a .avsc equivalent file)
+schema TransactionType;
 
-    /** Money that actually moved. Declined attempts never become this event. */
-    record CompletedTransaction {
-        uuid transactionId;
-        string reference;
-        TransactionType type;
-        union { null, uuid } fromAccountId = null;
-        union { null, uuid } toAccountId = null;
-        union { null, uuid } merchantId = null;
-        union { null, string } agentNumber = null;
-        decimal(19, 2) amount;
-        string currency;
-        @logicalType("timestamp-micros") long occurredAt;
-    }
+enum TransactionType {
+    P2P,
+    TOPUP,
+    MERCHANT_PAYMENT
+}
+
+/** Money that actually moved. Declined attempts never become this event. */
+record CompletedTransaction {
+    uuid transactionId;
+    string reference;
+    TransactionType type;
+    uuid? fromAccountId = null;
+    uuid? toAccountId = null;
+    uuid? merchantId = null;
+    string? agentNumber = null;
+    decimal(19, 2) amount;
+    string currency;
+    @logicalType("timestamp-micros") long occurredAt;
 }
