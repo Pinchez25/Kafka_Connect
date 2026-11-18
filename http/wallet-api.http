@@ -1,0 +1,96 @@
+### Open account
+POST http://localhost:8080/accounts
+Content-Type: application/json
+
+{
+  "phoneNumber": "254712345678",
+  "fullName": "Wanjiku Kamau"
+}
+
+> {% client.global.set("sender", response.body.id); %}
+
+### Open FULL KYC account
+POST http://localhost:8080/accounts
+Content-Type: application/json
+
+{
+  "phoneNumber": "254798765432",
+  "fullName": "Otieno Ochieng",
+  "kycLevel": "FULL"
+}
+
+> {% client.global.set("recipient", response.body.id); %}
+
+### Register merchant
+POST http://localhost:8080/merchants
+Content-Type: application/json
+
+{
+  "tillNumber": "512345",
+  "name": "Mama Njeri Groceries",
+  "category": "GROCERY"
+}
+
+### P2P transfer
+POST http://localhost:8080/transactions
+Content-Type: application/json
+
+{
+  "type": "P2P",
+  "fromAccountId": "{{sender}}",
+  "toAccountId": "{{recipient}}",
+  "amount": 500
+}
+
+### Top up
+POST http://localhost:8080/transactions
+Content-Type: application/json
+
+{
+  "type": "TOPUP",
+  "toAccountId": "{{sender}}",
+  "agentNumber": "123456",
+  "amount": 2000
+}
+
+### Merchant payment
+POST http://localhost:8080/transactions
+Content-Type: application/json
+
+{
+  "type": "MERCHANT_PAYMENT",
+  "fromAccountId": "{{sender}}",
+  "tillNumber": "512345",
+  "amount": 350
+}
+
+### Freeze account
+PUT http://localhost:8080/accounts/{{recipient}}/status
+Content-Type: application/json
+
+{
+  "status": "FROZEN"
+}
+
+### Upgrade KYC level
+PUT http://localhost:8080/accounts/{{sender}}/kyc-level
+Content-Type: application/json
+
+{
+  "kycLevel": "FULL"
+}
+
+### Transactions for an account
+GET http://localhost:8080/transactions?accountId={{sender}}&size=20
+
+### Accounts
+GET http://localhost:8080/accounts?page=0&size=20
+
+### Load generator status
+GET http://localhost:8080/load-generator
+
+### Start load generator
+POST http://localhost:8080/load-generator/start
+
+### Stop load generator
+POST http://localhost:8080/load-generator/stop
