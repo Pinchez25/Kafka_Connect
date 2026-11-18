@@ -10,6 +10,7 @@ dependencies {
 
 val generateAvroJava =
     tasks.register<GenerateAvroJava>("generateAvroJava") {
+        description = "Generates Java source files from Avro IDL and schema files."
         source.from(fileTree("src/main/avro") { include("**/*.avdl", "**/*.avsc") })
         outputDir = layout.buildDirectory.dir("generated/sources/avro/main")
     }
