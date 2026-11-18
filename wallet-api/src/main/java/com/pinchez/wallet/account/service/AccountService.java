@@ -1,6 +1,5 @@
 package com.pinchez.wallet.account.service;
 
-import com.pinchez.common.dto.PageResponse;
 import com.pinchez.common.exception.DuplicateResourceException;
 import com.pinchez.common.exception.ResourceNotFoundException;
 import com.pinchez.wallet.account.dto.AccountResponse;
@@ -10,6 +9,7 @@ import com.pinchez.wallet.account.dto.OpenAccountRequest;
 import com.pinchez.wallet.account.entity.Account;
 import com.pinchez.wallet.account.mapper.AccountMapper;
 import com.pinchez.wallet.account.repository.AccountRepository;
+import com.pinchez.wallet.common.dto.PageResponse;
 import com.pinchez.wallet.config.WalletProperties;
 import java.time.Clock;
 import java.util.List;

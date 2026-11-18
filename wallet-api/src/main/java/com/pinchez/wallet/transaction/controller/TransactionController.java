@@ -1,6 +1,6 @@
 package com.pinchez.wallet.transaction.controller;
 
-import com.pinchez.common.dto.PageResponse;
+import com.pinchez.wallet.common.dto.PageResponse;
 import com.pinchez.wallet.transaction.dto.TransactionRequest;
 import com.pinchez.wallet.transaction.dto.TransactionResponse;
 import com.pinchez.wallet.transaction.service.TransactionService;

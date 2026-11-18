@@ -1,4 +1,4 @@
-package com.pinchez.common.config;
+package com.pinchez.wallet.config;
 
 import java.time.Clock;
 import java.time.Duration;

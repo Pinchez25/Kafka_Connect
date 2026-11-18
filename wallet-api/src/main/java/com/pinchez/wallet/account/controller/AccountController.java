@@ -1,11 +1,11 @@
 package com.pinchez.wallet.account.controller;
 
-import com.pinchez.common.dto.PageResponse;
 import com.pinchez.wallet.account.dto.AccountResponse;
 import com.pinchez.wallet.account.dto.ChangeAccountStatusRequest;
 import com.pinchez.wallet.account.dto.ChangeKycLevelRequest;
 import com.pinchez.wallet.account.dto.OpenAccountRequest;
 import com.pinchez.wallet.account.service.AccountService;
+import com.pinchez.wallet.common.dto.PageResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

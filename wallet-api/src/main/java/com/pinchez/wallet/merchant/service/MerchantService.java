@@ -1,8 +1,8 @@
 package com.pinchez.wallet.merchant.service;
 
-import com.pinchez.common.dto.PageResponse;
 import com.pinchez.common.exception.DuplicateResourceException;
 import com.pinchez.common.exception.ResourceNotFoundException;
+import com.pinchez.wallet.common.dto.PageResponse;
 import com.pinchez.wallet.merchant.dto.MerchantResponse;
 import com.pinchez.wallet.merchant.dto.RegisterMerchantRequest;
 import com.pinchez.wallet.merchant.entity.Merchant;

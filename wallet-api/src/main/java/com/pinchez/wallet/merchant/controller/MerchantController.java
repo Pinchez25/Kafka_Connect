@@ -1,6 +1,6 @@
 package com.pinchez.wallet.merchant.controller;
 
-import com.pinchez.common.dto.PageResponse;
+import com.pinchez.wallet.common.dto.PageResponse;
 import com.pinchez.wallet.merchant.dto.MerchantResponse;
 import com.pinchez.wallet.merchant.dto.RegisterMerchantRequest;
 import com.pinchez.wallet.merchant.service.MerchantService;

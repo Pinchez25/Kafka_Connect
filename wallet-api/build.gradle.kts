@@ -5,6 +5,7 @@ plugins {
 description = "Wallet REST API: accounts, merchants and transactions in Postgres"
 
 dependencies {
+    implementation(project(":common-web"))
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.springframework.boot:spring-boot-starter-validation")

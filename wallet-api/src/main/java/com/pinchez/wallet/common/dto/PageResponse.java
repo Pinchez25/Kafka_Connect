@@ -1,4 +1,4 @@
-package com.pinchez.common.dto;
+package com.pinchez.wallet.common.dto;
 
 import java.util.List;
 import org.springframework.data.domain.Page;
