@@ -3,6 +3,8 @@ namespace com.pinchez.events;
 // Optional: main schema (using it creates a .avsc equivalent file)
 schema TransactionType;
 
+import idl "reference.avdl";
+
 enum TransactionType {
     P2P,
     TOPUP,
@@ -21,4 +23,30 @@ record CompletedTransaction {
     decimal(19, 2) amount;
     string currency;
     @logicalType("timestamp-micros") long occurredAt;
+}
+
+/** A completed transaction attributed to one account, with that account and merchant context. */
+record EnrichedTransaction {
+    uuid transactionId;
+    TransactionType type;
+    /** The sender, or the recipient for top-ups. */
+    uuid accountId;
+    uuid? counterpartyAccountId = null;
+    decimal(19, 2) amount;
+    @logicalType("timestamp-micros") long occurredAt;
+    KycLevel? kycLevel = null;
+    AccountStatus? accountStatus = null;
+    long? accountAgeSeconds = null;
+    uuid? merchantId = null;
+    MerchantCategory? merchantCategory = null;
+}
+
+/** A transaction joined to its sender's current account state. */
+record TransactionSender {
+    uuid transactionId;
+    TransactionType type;
+    decimal(19, 2) amount;
+    uuid senderAccountId;
+    KycLevel senderKycLevel;
+    AccountStatus senderStatus;
 }

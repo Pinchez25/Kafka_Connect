@@ -1,0 +1,21 @@
+namespace com.pinchez.events;
+
+schema Balance;
+
+import idl "transaction-events.avdl";
+
+/** One side of a money movement. Negative amounts are debits. */
+record LedgerEntry {
+    uuid transactionId;
+    uuid accountId;
+    TransactionType type;
+    decimal(19, 2) amount;
+    @logicalType("timestamp-micros") long occurredAt;
+}
+
+record Balance {
+    decimal(19, 2) amount;
+    long entryCount;
+    uuid? lastTransactionId = null;
+    union { null, @logicalType("timestamp-micros") long } updatedAt = null;
+}

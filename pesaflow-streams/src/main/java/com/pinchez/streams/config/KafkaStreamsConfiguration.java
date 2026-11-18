@@ -1,12 +1,10 @@
 package com.pinchez.streams.config;
 
-import com.pinchez.cdc.Transaction;
-import com.pinchez.events.CompletedTransaction;
 import com.pinchez.streams.serde.AvroSerdeFactory;
-import com.pinchez.streams.topology.TransactionRoutingTopology;
-import io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde;
-import java.util.List;
+import com.pinchez.streams.topology.PesaflowTopology;
+import java.util.stream.Stream;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,23 +22,8 @@ class KafkaStreamsConfiguration {
     }
 
     @Bean
-    SpecificAvroSerde<Transaction> cdcTransactionSerde(AvroSerdeFactory serdes) {
-        return serdes.valueSerde();
-    }
-
-    @Bean
-    SpecificAvroSerde<CompletedTransaction> completedTransactionSerde(AvroSerdeFactory serdes) {
-        return serdes.valueSerde();
-    }
-
-    @Bean
-    TransactionRoutingTopology transactionRoutingTopology(
-            StreamsBuilder builder,
-            StreamsProperties properties,
-            SpecificAvroSerde<Transaction> cdcTransactionSerde,
-            SpecificAvroSerde<CompletedTransaction> completedTransactionSerde) {
-        var topology =
-                new TransactionRoutingTopology(properties.topics(), cdcTransactionSerde, completedTransactionSerde);
+    PesaflowTopology pesaflowTopology(StreamsBuilder builder, StreamsProperties properties, AvroSerdeFactory serdes) {
+        var topology = new PesaflowTopology(properties, serdes);
         topology.addTo(builder);
         return topology;
     }
@@ -48,13 +31,21 @@ class KafkaStreamsConfiguration {
     @Bean
     KafkaAdmin.NewTopics outputTopics(StreamsProperties properties) {
         var topics = properties.topics();
+        var streams = Stream.of(
+                        topics.p2pTransfers(),
+                        topics.topUps(),
+                        topics.merchantPayments(),
+                        topics.enrichedTransactions())
+                .map(name -> topic(properties, name).build());
+        var tables = Stream.of(topics.balances(), topics.transactionSenders())
+                .map(name -> topic(properties, name)
+                        .config(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT)
+                        .build());
+        return new KafkaAdmin.NewTopics(Stream.concat(streams, tables).toArray(NewTopic[]::new));
+    }
+
+    private static TopicBuilder topic(StreamsProperties properties, String name) {
         var output = properties.outputTopics();
-        return new KafkaAdmin.NewTopics(
-                List.of(topics.p2pTransfers(), topics.topUps(), topics.merchantPayments()).stream()
-                        .map(name -> TopicBuilder.name(name)
-                                .partitions(output.partitions())
-                                .replicas(output.replicationFactor())
-                                .build())
-                        .toArray(NewTopic[]::new));
+        return TopicBuilder.name(name).partitions(output.partitions()).replicas(output.replicationFactor());
     }
 }

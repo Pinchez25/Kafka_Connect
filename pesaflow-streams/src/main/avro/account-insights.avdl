@@ -1,0 +1,25 @@
+namespace com.pinchez.events;
+
+schema AccountProfile;
+
+import idl "reference.avdl";
+
+record AccountProfile {
+    decimal(19, 2) totalTopUps;
+    long topUpCount;
+    decimal(19, 2) totalP2pSent;
+    long p2pSentCount;
+    decimal(19, 2) totalMerchantSpend;
+    long merchantPaymentCount;
+    map<long> merchantPaymentsByCategory;
+    MerchantCategory? favouriteMerchantCategory = null;
+}
+
+record AccountSummary {
+    string fullName;
+    KycLevel kycLevel;
+    AccountStatus status;
+    decimal(19, 2) dailyLimit;
+    decimal(19, 2) balance;
+    long entryCount;
+}

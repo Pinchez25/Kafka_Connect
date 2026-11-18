@@ -3,10 +3,9 @@ package com.pinchez.streams;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import com.pinchez.cdc.Transaction;
 import com.pinchez.events.CompletedTransaction;
 import com.pinchez.streams.config.StreamsProperties;
-import com.pinchez.streams.support.CdcTransactions;
+import com.pinchez.streams.support.CdcRecords;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
@@ -15,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.avro.specific.SpecificRecord;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -32,10 +32,15 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.KafkaAdmin;
 import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
-@SpringBootTest(properties = "pesaflow.streams.schema-registry-url=" + StreamsApplicationIntegrationTest.REGISTRY)
+@SpringBootTest(
+        properties = {
+            "pesaflow.streams.schema-registry-url=" + StreamsApplicationIntegrationTest.REGISTRY,
+            "spring.kafka.streams.state-dir=build/kafka-streams-test/${random.uuid}"
+        })
 @Import(StreamsApplicationIntegrationTest.Infrastructure.class)
 class StreamsApplicationIntegrationTest {
 
@@ -49,30 +54,31 @@ class StreamsApplicationIntegrationTest {
 
     @Test
     void routesCompletedTransactionsFromTheCdcTopic() {
-        var transfer = CdcTransactions.completed("P2P").build();
-        var declined = CdcTransactions.failed("P2P", "SENDER_FROZEN").build();
+        var wanjiku = UUID.randomUUID();
+        var otieno = UUID.randomUUID();
+        var topUp = CdcRecords.topUp(wanjiku, "1000.00").build();
+        var transfer = CdcRecords.p2p(wanjiku, otieno, "250.00").build();
+        var declined = CdcRecords.p2p(wanjiku, otieno, "999.00")
+                .setStatus("FAILED")
+                .setFailureReason("SENDER_FROZEN")
+                .build();
 
-        try (var producer = new KafkaProducer<String, Transaction>(producerConfig())) {
-            for (var row : List.of(declined, transfer)) {
-                producer.send(new ProducerRecord<>(
-                        properties.topics().cdcTransactions(), row.getId().toString(), row));
-            }
+        var topics = properties.topics();
+        send(
+                topics.cdcAccounts(),
+                wanjiku.toString(),
+                CdcRecords.account(wanjiku, "BASIC").build());
+        for (var row : List.of(topUp, transfer, declined)) {
+            send(topics.cdcTransactions(), row.getId().toString(), row);
         }
 
-        try (var consumer = new KafkaConsumer<String, CompletedTransaction>(consumerConfig())) {
-            consumer.subscribe(List.of(properties.topics().p2pTransfers()));
-            var received = new ArrayList<CompletedTransaction>();
-            await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
-                consumer.poll(Duration.ofMillis(500)).forEach(record -> received.add(record.value()));
-                assertThat(received)
-                        .extracting(CompletedTransaction::getTransactionId)
-                        .containsExactly(transfer.getId());
-            });
-        }
+        assertThat(consume(topics.p2pTransfers(), 1))
+                .extracting(CompletedTransaction::getTransactionId)
+                .containsExactly(transfer.getId());
     }
 
-    private Map<String, Object> producerConfig() {
-        return Map.of(
+    private void send(String topic, String key, SpecificRecord value) {
+        try (var producer = new KafkaProducer<String, SpecificRecord>(Map.of(
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
                 String.join(",", kafka.getBootstrapServers()),
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
@@ -80,11 +86,13 @@ class StreamsApplicationIntegrationTest {
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
                 KafkaAvroSerializer.class,
                 KafkaAvroDeserializerConfig.SCHEMA_REGISTRY_URL_CONFIG,
-                REGISTRY);
+                REGISTRY))) {
+            producer.send(new ProducerRecord<>(topic, key, value));
+        }
     }
 
-    private Map<String, Object> consumerConfig() {
-        return Map.of(
+    private List<CompletedTransaction> consume(String topic, int expected) {
+        try (var consumer = new KafkaConsumer<String, CompletedTransaction>(Map.of(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
                 String.join(",", kafka.getBootstrapServers()),
                 ConsumerConfig.GROUP_ID_CONFIG,
@@ -98,7 +106,15 @@ class StreamsApplicationIntegrationTest {
                 KafkaAvroDeserializerConfig.SCHEMA_REGISTRY_URL_CONFIG,
                 REGISTRY,
                 KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG,
-                true);
+                true))) {
+            consumer.subscribe(List.of(topic));
+            var received = new ArrayList<CompletedTransaction>();
+            await().atMost(Duration.ofSeconds(60)).until(() -> {
+                consumer.poll(Duration.ofMillis(500)).forEach(record -> received.add(record.value()));
+                return received.size() >= expected;
+            });
+            return received;
+        }
     }
 
     @TestConfiguration(proxyBeanMethods = false)
@@ -111,11 +127,15 @@ class StreamsApplicationIntegrationTest {
         }
 
         @Bean
-        NewTopic cdcTransactionsTopic(StreamsProperties properties) {
-            return TopicBuilder.name(properties.topics().cdcTransactions())
-                    .partitions(3)
-                    .replicas(1)
-                    .build();
+        KafkaAdmin.NewTopics cdcTopics(StreamsProperties properties) {
+            var topics = properties.topics();
+            return new KafkaAdmin.NewTopics(
+                    List.of(topics.cdcAccounts(), topics.cdcMerchants(), topics.cdcTransactions()).stream()
+                            .map(name -> TopicBuilder.name(name)
+                                    .partitions(3)
+                                    .replicas(1)
+                                    .build())
+                            .toArray(NewTopic[]::new));
         }
     }
 }

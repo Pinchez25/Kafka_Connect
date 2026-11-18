@@ -1,0 +1,23 @@
+namespace com.pinchez.events;
+
+schema KycLevel;
+
+enum KycLevel {
+    BASIC,
+    FULL
+}
+
+enum AccountStatus {
+    ACTIVE,
+    FROZEN
+}
+
+enum MerchantCategory {
+    GROCERY,
+    BETTING,
+    FUEL,
+    RESTAURANT,
+    TRANSPORT,
+    UTILITIES,
+    PHARMACY
+}

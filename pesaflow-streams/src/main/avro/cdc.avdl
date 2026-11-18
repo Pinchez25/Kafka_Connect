@@ -19,3 +19,27 @@ record Transaction {
     string? __op = null;
     long? __source_ts_ms = null;
 }
+
+record Account {
+    uuid id;
+    string created_at;
+    string updated_at;
+    long version;
+    decimal(19, 2) daily_limit;
+    string phone_number;
+    string full_name;
+    string kyc_level;
+    string status;
+    string? __op = null;
+    long? __source_ts_ms = null;
+}
+
+record Merchant {
+    uuid id;
+    string created_at;
+    string till_number;
+    string name;
+    string category;
+    string? __op = null;
+    long? __source_ts_ms = null;
+}
