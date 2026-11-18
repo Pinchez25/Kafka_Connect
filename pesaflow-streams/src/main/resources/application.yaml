@@ -1,3 +1,6 @@
+server:
+  port: 8082
+
 spring:
   application:
     name: pesaflow-streams
@@ -8,8 +11,10 @@ spring:
     bootstrap-servers: localhost:9092
     streams:
       application-id: pesaflow-streams
-      state-dir: build/kafka-streams
+      state-dir: build/kafka-streams/${server.port}
       properties:
+        # Lets every instance tell callers which host owns a key (interactive query routing).
+        application.server: localhost:${server.port}
         # Connect writes with exactly-once transactions; don't read records from aborted ones.
         consumer.isolation.level: read_committed
         commit.interval.ms: 1000

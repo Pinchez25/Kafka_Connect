@@ -9,8 +9,10 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
+import org.springframework.kafka.config.StreamsBuilderFactoryBean;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.KafkaAdmin;
+import org.springframework.kafka.streams.KafkaStreamsInteractiveQueryService;
 
 @Configuration(proxyBeanMethods = false)
 @EnableKafkaStreams
@@ -26,6 +28,11 @@ class KafkaStreamsConfiguration {
         var topology = new PesaflowTopology(properties, serdes);
         topology.addTo(builder);
         return topology;
+    }
+
+    @Bean
+    KafkaStreamsInteractiveQueryService interactiveQueryService(StreamsBuilderFactoryBean streamsBuilder) {
+        return new KafkaStreamsInteractiveQueryService(streamsBuilder);
     }
 
     @Bean

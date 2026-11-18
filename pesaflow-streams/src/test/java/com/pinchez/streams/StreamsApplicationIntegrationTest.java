@@ -29,10 +29,13 @@ import org.springframework.boot.kafka.autoconfigure.KafkaConnectionDetails;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.KafkaAdmin;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -41,6 +44,7 @@ import org.testcontainers.utility.DockerImageName;
             "pesaflow.streams.schema-registry-url=" + StreamsApplicationIntegrationTest.REGISTRY,
             "spring.kafka.streams.state-dir=build/kafka-streams-test/${random.uuid}"
         })
+@AutoConfigureMockMvc
 @Import(StreamsApplicationIntegrationTest.Infrastructure.class)
 class StreamsApplicationIntegrationTest {
 
@@ -52,8 +56,11 @@ class StreamsApplicationIntegrationTest {
     @Autowired
     StreamsProperties properties;
 
+    @Autowired
+    MockMvcTester mvc;
+
     @Test
-    void routesCompletedTransactionsFromTheCdcTopic() {
+    void routesTransactionsAndServesBalancesFromTheStateStore() {
         var wanjiku = UUID.randomUUID();
         var otieno = UUID.randomUUID();
         var topUp = CdcRecords.topUp(wanjiku, "1000.00").build();
@@ -75,6 +82,27 @@ class StreamsApplicationIntegrationTest {
         assertThat(consume(topics.p2pTransfers(), 1))
                 .extracting(CompletedTransaction::getTransactionId)
                 .containsExactly(transfer.getId());
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var balance = mvc.get().uri("/balances/{accountId}", wanjiku);
+            assertThat(balance).hasStatus(HttpStatus.OK);
+            assertThat(balance).bodyJson().extractingPath("$.balance").isEqualTo(750.0);
+        });
+        // Downstream of a cached KTable, the join only sees the new balance once the cache flushes on commit.
+        await().atMost(Duration.ofSeconds(30))
+                .untilAsserted(() -> assertThat(mvc.get().uri("/accounts/{accountId}/summary", wanjiku))
+                        .bodyJson()
+                        .extractingPath("$.balance")
+                        .isEqualTo(750.0));
+    }
+
+    @Test
+    void unknownAccountIsAProblemDetail404() {
+        await().atMost(Duration.ofSeconds(30))
+                .untilAsserted(() -> assertThat(mvc.get().uri("/balances/{accountId}", UUID.randomUUID()))
+                        .hasStatus(HttpStatus.NOT_FOUND)
+                        .bodyJson()
+                        .extractingPath("$.type")
+                        .isEqualTo("urn:pesaflow:problem:resource-not-found"));
     }
 
     private void send(String topic, String key, SpecificRecord value) {
