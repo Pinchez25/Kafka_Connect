@@ -1,0 +1,24 @@
+/**
+ * Rows of the wallet database as published by the Debezium source connector, after its
+ * ExtractNewRecordState and SetSchemaMetadata transforms. Field names mirror the columns.
+ */
+@namespace("com.pinchez.cdc")
+protocol WalletCdc {
+
+    record Transaction {
+        uuid id;
+        string created_at;
+        union { null, uuid } from_account_id = null;
+        union { null, uuid } to_account_id = null;
+        union { null, uuid } merchant_id = null;
+        decimal(19, 2) amount;
+        string reference;
+        string type;
+        union { null, string } agent_number = null;
+        string currency;
+        string status;
+        union { null, string } failure_reason = null;
+        union { null, string } __op = null;
+        union { null, long } __source_ts_ms = null;
+    }
+}

@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: pesaflow-streams
+  kafka:
+    bootstrap-servers: localhost:9092
+    streams:
+      application-id: pesaflow-streams
+      properties:
+        # Connect writes with exactly-once transactions; don't read records from aborted ones.
+        consumer.isolation.level: read_committed
+
+pesaflow:
+  streams:
+    schema-registry-url: http://localhost:8081
+    topics:
+      cdc-transactions: pesaflow.transactions
+      p2p-transfers: pesaflow.transactions.p2p
+      top-ups: pesaflow.transactions.top-up
+      merchant-payments: pesaflow.transactions.merchant-payment
+    output-topics:
+      partitions: 3
+      replication-factor: 1

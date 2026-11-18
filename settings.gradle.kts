@@ -1,3 +1,3 @@
 rootProject.name = "pesaflow"
 
-include("wallet-api")
+include("wallet-api", "pesaflow-streams")

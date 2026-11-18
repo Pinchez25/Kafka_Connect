@@ -1,5 +1,6 @@
 [versions]
 avro = "1.12.1"
+confluent = "8.2.0"
 lombok-mapstruct-binding = "0.2.0"
 mapstruct = "1.6.3"
 palantir-java-format = "2.103.0"
@@ -11,6 +12,7 @@ spring-dependency-management = "1.1.7"
 avro = { module = "org.apache.avro:avro", version.ref = "avro" }
 avro-compiler = { module = "org.apache.avro:avro-compiler", version.ref = "avro" }
 avro-idl = { module = "org.apache.avro:avro-idl", version.ref = "avro" }
+confluent-kafka-streams-avro-serde = { module = "io.confluent:kafka-streams-avro-serde", version.ref = "confluent" }
 lombok-mapstruct-binding = { module = "org.projectlombok:lombok-mapstruct-binding", version.ref = "lombok-mapstruct-binding" }
 mapstruct = { module = "org.mapstruct:mapstruct", version.ref = "mapstruct" }
 mapstruct-processor = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" }
