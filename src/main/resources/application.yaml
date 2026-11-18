@@ -28,3 +28,14 @@ pesaflow:
     daily-limits:
       BASIC: 70000
       FULL: 500000
+  load-generator:
+    enabled: false
+    interval: 1s
+    transactions-per-tick: 5
+    seed-accounts: 200
+    seed-merchants: 30
+    new-account-probability: 0.05
+    mix:
+      p2p: 6
+      merchant-payment: 3
+      top-up: 1
