@@ -11,7 +11,6 @@ import com.pinchez.wallet.account.mapper.AccountMapper;
 import com.pinchez.wallet.account.repository.AccountRepository;
 import com.pinchez.wallet.common.dto.PageResponse;
 import com.pinchez.wallet.config.WalletProperties;
-import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +26,6 @@ public class AccountService {
     private final AccountRepository accounts;
     private final AccountMapper mapper;
     private final WalletProperties walletProperties;
-    private final Clock clock;
 
     @Transactional
     public AccountResponse open(OpenAccountRequest request) {
@@ -38,8 +36,7 @@ public class AccountService {
                 request.phoneNumber(),
                 request.fullName(),
                 request.kycLevel(),
-                walletProperties.dailyLimitFor(request.kycLevel()),
-                clock.instant());
+                walletProperties.dailyLimitFor(request.kycLevel()));
         return mapper.toResponse(accounts.save(account));
     }
 
@@ -58,15 +55,15 @@ public class AccountService {
     @Transactional
     public AccountResponse changeStatus(UUID id, ChangeAccountStatusRequest request) {
         var account = require(id);
-        account.changeStatus(request.status(), clock.instant());
-        return mapper.toResponse(account);
+        account.changeStatus(request.status());
+        return mapper.toResponse(accounts.saveAndFlush(account));
     }
 
     @Transactional
     public AccountResponse changeKycLevel(UUID id, ChangeKycLevelRequest request) {
         var account = require(id);
-        account.changeKycLevel(request.kycLevel(), walletProperties.dailyLimitFor(request.kycLevel()), clock.instant());
-        return mapper.toResponse(account);
+        account.changeKycLevel(request.kycLevel(), walletProperties.dailyLimitFor(request.kycLevel()));
+        return mapper.toResponse(accounts.saveAndFlush(account));
     }
 
     private Account require(UUID id) {

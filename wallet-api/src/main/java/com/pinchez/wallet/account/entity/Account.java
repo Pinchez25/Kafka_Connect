@@ -2,6 +2,7 @@ package com.pinchez.wallet.account.entity;
 
 import com.pinchez.wallet.account.enums.AccountStatus;
 import com.pinchez.wallet.account.enums.KycLevel;
+import com.pinchez.wallet.common.entity.AuditedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,7 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -22,7 +22,7 @@ import org.hibernate.annotations.UuidGenerator;
 @Table(name = "accounts")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Account {
+public class Account extends AuditedEntity {
 
     @Id
     @GeneratedValue
@@ -46,25 +46,16 @@ public class Account {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal dailyLimit;
 
-    @Column(nullable = false)
-    private Instant createdAt;
-
-    @Column(nullable = false)
-    private Instant updatedAt;
-
     @Version
     private long version;
 
-    public static Account open(
-            String phoneNumber, String fullName, KycLevel kycLevel, BigDecimal dailyLimit, Instant now) {
+    public static Account open(String phoneNumber, String fullName, KycLevel kycLevel, BigDecimal dailyLimit) {
         var account = new Account();
         account.phoneNumber = phoneNumber;
         account.fullName = fullName;
         account.kycLevel = kycLevel;
         account.dailyLimit = dailyLimit;
         account.status = AccountStatus.ACTIVE;
-        account.createdAt = now;
-        account.updatedAt = now;
         return account;
     }
 
@@ -72,14 +63,12 @@ public class Account {
         return status == AccountStatus.ACTIVE;
     }
 
-    public void changeStatus(AccountStatus newStatus, Instant now) {
+    public void changeStatus(AccountStatus newStatus) {
         this.status = newStatus;
-        this.updatedAt = now;
     }
 
-    public void changeKycLevel(KycLevel newKycLevel, BigDecimal newDailyLimit, Instant now) {
+    public void changeKycLevel(KycLevel newKycLevel, BigDecimal newDailyLimit) {
         this.kycLevel = newKycLevel;
         this.dailyLimit = newDailyLimit;
-        this.updatedAt = now;
     }
 }

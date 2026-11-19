@@ -4,6 +4,7 @@ import com.pinchez.common.exception.ResourceNotFoundException;
 import com.pinchez.wallet.account.entity.Account;
 import com.pinchez.wallet.account.repository.AccountRepository;
 import com.pinchez.wallet.common.dto.PageResponse;
+import com.pinchez.wallet.common.service.AuditClock;
 import com.pinchez.wallet.config.WalletProperties;
 import com.pinchez.wallet.merchant.entity.Merchant;
 import com.pinchez.wallet.merchant.repository.MerchantRepository;
@@ -45,6 +46,7 @@ public class TransactionService {
     private final TransactionReferenceGenerator referenceGenerator;
     private final WalletProperties walletProperties;
     private final Clock clock;
+    private final AuditClock auditClock;
 
     @Transactional
     public TransactionResponse submit(TransactionRequest request) {
@@ -61,7 +63,7 @@ public class TransactionService {
             case MerchantPayment(var fromAccountId, var tillNumber, var amount) ->
                 payMerchant(fromAccountId, tillNumber, amount, now);
         };
-        return mapper.toResponse(transactions.save(transaction));
+        return auditClock.at(now, () -> mapper.toResponse(transactions.save(transaction)));
     }
 
     public TransactionResponse get(UUID id) {
@@ -81,7 +83,7 @@ public class TransactionService {
     private WalletTransaction transfer(UUID fromAccountId, UUID toAccountId, BigDecimal amount, Instant now) {
         var sender = lockSender(fromAccountId);
         var recipient = findAccount(toAccountId);
-        var transaction = WalletTransaction.p2p(referenceGenerator.next(), sender, recipient, amount, currency(), now);
+        var transaction = WalletTransaction.p2p(referenceGenerator.next(), sender, recipient, amount, currency());
         senderRejection(sender, amount, now)
                 .or(() -> recipientRejection(recipient))
                 .ifPresent(transaction::decline);
@@ -91,7 +93,7 @@ public class TransactionService {
     private WalletTransaction topUp(UUID toAccountId, String agentNumber, BigDecimal amount, Instant now) {
         var recipient = findAccount(toAccountId);
         var transaction =
-                WalletTransaction.topUp(referenceGenerator.next(), agentNumber, recipient, amount, currency(), now);
+                WalletTransaction.topUp(referenceGenerator.next(), agentNumber, recipient, amount, currency());
         recipientRejection(recipient).ifPresent(transaction::decline);
         return transaction;
     }
@@ -102,7 +104,7 @@ public class TransactionService {
                 .findByTillNumber(tillNumber)
                 .orElseThrow(() -> new ResourceNotFoundException(Merchant.class, tillNumber));
         var transaction =
-                WalletTransaction.merchantPayment(referenceGenerator.next(), sender, merchant, amount, currency(), now);
+                WalletTransaction.merchantPayment(referenceGenerator.next(), sender, merchant, amount, currency());
         senderRejection(sender, amount, now).ifPresent(transaction::decline);
         return transaction;
     }

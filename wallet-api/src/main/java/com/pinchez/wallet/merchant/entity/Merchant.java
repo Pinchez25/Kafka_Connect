@@ -1,5 +1,6 @@
 package com.pinchez.wallet.merchant.entity;
 
+import com.pinchez.wallet.common.entity.CreationAuditedEntity;
 import com.pinchez.wallet.merchant.enums.MerchantCategory;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -8,7 +9,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -19,7 +19,7 @@ import org.hibernate.annotations.UuidGenerator;
 @Table(name = "merchants")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Merchant {
+public class Merchant extends CreationAuditedEntity {
 
     @Id
     @GeneratedValue
@@ -36,15 +36,11 @@ public class Merchant {
     @Column(nullable = false, length = 20)
     private MerchantCategory category;
 
-    @Column(nullable = false)
-    private Instant createdAt;
-
-    public static Merchant register(String tillNumber, String name, MerchantCategory category, Instant now) {
+    public static Merchant register(String tillNumber, String name, MerchantCategory category) {
         var merchant = new Merchant();
         merchant.tillNumber = tillNumber;
         merchant.name = name;
         merchant.category = category;
-        merchant.createdAt = now;
         return merchant;
     }
 }

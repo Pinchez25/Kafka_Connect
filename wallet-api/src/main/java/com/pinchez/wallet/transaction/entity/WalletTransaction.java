@@ -1,6 +1,7 @@
 package com.pinchez.wallet.transaction.entity;
 
 import com.pinchez.wallet.account.entity.Account;
+import com.pinchez.wallet.common.entity.CreationAuditedEntity;
 import com.pinchez.wallet.merchant.entity.Merchant;
 import com.pinchez.wallet.transaction.enums.FailureReason;
 import com.pinchez.wallet.transaction.enums.TransactionStatus;
@@ -17,7 +18,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
 import java.util.Currency;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -29,7 +29,7 @@ import org.hibernate.annotations.UuidGenerator;
 @Table(name = "transactions")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class WalletTransaction {
+public class WalletTransaction extends CreationAuditedEntity {
 
     @Id
     @GeneratedValue
@@ -72,28 +72,25 @@ public class WalletTransaction {
     @Column(length = 30)
     private FailureReason failureReason;
 
-    @Column(nullable = false)
-    private Instant createdAt;
-
     public static WalletTransaction p2p(
-            String reference, Account from, Account to, BigDecimal amount, Currency currency, Instant now) {
-        var transaction = completed(reference, TransactionType.P2P, amount, currency, now);
+            String reference, Account from, Account to, BigDecimal amount, Currency currency) {
+        var transaction = completed(reference, TransactionType.P2P, amount, currency);
         transaction.fromAccount = from;
         transaction.toAccount = to;
         return transaction;
     }
 
     public static WalletTransaction topUp(
-            String reference, String agentNumber, Account to, BigDecimal amount, Currency currency, Instant now) {
-        var transaction = completed(reference, TransactionType.TOPUP, amount, currency, now);
+            String reference, String agentNumber, Account to, BigDecimal amount, Currency currency) {
+        var transaction = completed(reference, TransactionType.TOPUP, amount, currency);
         transaction.agentNumber = agentNumber;
         transaction.toAccount = to;
         return transaction;
     }
 
     public static WalletTransaction merchantPayment(
-            String reference, Account from, Merchant merchant, BigDecimal amount, Currency currency, Instant now) {
-        var transaction = completed(reference, TransactionType.MERCHANT_PAYMENT, amount, currency, now);
+            String reference, Account from, Merchant merchant, BigDecimal amount, Currency currency) {
+        var transaction = completed(reference, TransactionType.MERCHANT_PAYMENT, amount, currency);
         transaction.fromAccount = from;
         transaction.merchant = merchant;
         return transaction;
@@ -105,14 +102,13 @@ public class WalletTransaction {
     }
 
     private static WalletTransaction completed(
-            String reference, TransactionType type, BigDecimal amount, Currency currency, Instant now) {
+            String reference, TransactionType type, BigDecimal amount, Currency currency) {
         var transaction = new WalletTransaction();
         transaction.reference = reference;
         transaction.type = type;
         transaction.amount = amount.setScale(2, RoundingMode.UNNECESSARY);
         transaction.currency = currency;
         transaction.status = TransactionStatus.COMPLETED;
-        transaction.createdAt = now;
         return transaction;
     }
 }

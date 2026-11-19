@@ -9,7 +9,6 @@ import com.pinchez.wallet.merchant.entity.Merchant;
 import com.pinchez.wallet.merchant.enums.MerchantCategory;
 import com.pinchez.wallet.merchant.mapper.MerchantMapper;
 import com.pinchez.wallet.merchant.repository.MerchantRepository;
-import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,14 +24,13 @@ public class MerchantService {
 
     private final MerchantRepository merchants;
     private final MerchantMapper mapper;
-    private final Clock clock;
 
     @Transactional
     public MerchantResponse register(RegisterMerchantRequest request) {
         if (merchants.existsByTillNumber(request.tillNumber())) {
             throw new DuplicateResourceException(Merchant.class, "tillNumber", request.tillNumber());
         }
-        var merchant = Merchant.register(request.tillNumber(), request.name(), request.category(), clock.instant());
+        var merchant = Merchant.register(request.tillNumber(), request.name(), request.category());
         return mapper.toResponse(merchants.save(merchant));
     }
 
