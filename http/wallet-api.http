@@ -118,3 +118,14 @@ POST http://localhost:8080/load-generator/scenarios/unusual-amount
 
 ### Dormant account: a single top-up stamped 40 days ago
 POST http://localhost:8080/load-generator/scenarios/dormant-account
+
+### Fraud alert webhook (normally called by the pesaflow-fraud-webhook HTTP sink)
+POST http://localhost:8080/webhooks/fraud-alerts
+Content-Type: application/json
+
+{
+  "alertId": "8a5b52b1-cc7d-351a-8cdc-17414af51470",
+  "rule": "TRANSFER_VELOCITY",
+  "accountId": "{{recipient}}",
+  "description": "6 transfers within 1 min (limit 5)"
+}

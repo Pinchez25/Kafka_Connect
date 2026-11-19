@@ -7,6 +7,8 @@ import com.pinchez.wallet.account.dto.ChangeAccountStatusRequest;
 import com.pinchez.wallet.account.dto.ChangeKycLevelRequest;
 import com.pinchez.wallet.account.dto.OpenAccountRequest;
 import com.pinchez.wallet.account.entity.Account;
+import com.pinchez.wallet.account.enums.AccountStatus;
+import com.pinchez.wallet.account.enums.FreezeOutcome;
 import com.pinchez.wallet.account.mapper.AccountMapper;
 import com.pinchez.wallet.account.repository.AccountRepository;
 import com.pinchez.wallet.common.dto.PageResponse;
@@ -64,6 +66,20 @@ public class AccountService {
         var account = require(id);
         account.changeKycLevel(request.kycLevel(), walletProperties.dailyLimitFor(request.kycLevel()));
         return mapper.toResponse(accounts.saveAndFlush(account));
+    }
+
+    /** Idempotent, so a redelivered alert is harmless. */
+    @Transactional
+    public FreezeOutcome freeze(UUID id) {
+        return accounts.findById(id)
+                .map(account -> {
+                    if (account.getStatus() == AccountStatus.FROZEN) {
+                        return FreezeOutcome.ALREADY_FROZEN;
+                    }
+                    account.changeStatus(AccountStatus.FROZEN);
+                    return FreezeOutcome.FROZEN;
+                })
+                .orElse(FreezeOutcome.ACCOUNT_NOT_FOUND);
     }
 
     private Account require(UUID id) {
