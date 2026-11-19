@@ -32,6 +32,7 @@
   "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
   "transforms.unwrap.delete.tombstone.handling.mode": "tombstone",
   "transforms.unwrap.add.fields": "op,source.ts_ms",
+  "transforms.unwrap.add.headers": "op,source.lsn",
   "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
   "transforms.route.regex": "pesaflow\\.public\\.(.*)",
   "transforms.route.replacement": "pesaflow.$1",

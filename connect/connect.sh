@@ -2,7 +2,8 @@
 set -euo pipefail
 
 CONNECT_URL="${CONNECT_URL:-http://localhost:8083}"
-CONNECTORS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/connectors"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONNECTORS_DIR="$SCRIPT_DIR/connectors"
 
 usage() {
     cat <<USAGE
@@ -18,6 +19,7 @@ Usage: $(basename "$0") <command> [connector]
   restart <connector>       restart the connector and all its tasks
   delete <connector>        remove the connector (its replication slot is NOT dropped)
   plugins                   installed connector plugins
+  snapshot <table>          incremental snapshot of public.<table> via the signal table (re-emits every row)
 
 CONNECT_URL defaults to http://localhost:8083 (use http://localhost:8084 for the second worker).
 USAGE
@@ -75,6 +77,13 @@ case "$command" in
     stop) require_name "$name"; api PUT "/connectors/$name/stop" && echo "Stopped $name" ;;
     restart) require_name "$name"; api POST "/connectors/$name/restart?includeTasks=true" | jq ;;
     delete) require_name "$name"; api DELETE "/connectors/$name" && echo "Deleted $name" ;;
+    snapshot)
+        require_name "$name"
+        signal="{\"data-collections\": [\"public.$name\"], \"type\": \"incremental\"}"
+        docker compose -f "$SCRIPT_DIR/../docker-compose.yml" exec -T postgres \
+            psql -U pesaflow -d pesaflow -v ON_ERROR_STOP=1 -c \
+            "insert into debezium_signals (id, type, data) values ('snapshot-$name-' || now()::text, 'execute-snapshot', '$signal')"
+        ;;
     plugins) api GET '/connector-plugins' | jq -r '.[] | "\(.type)\t\(.class)\t\(.version)"' | column -t -s $'\t' ;;
     *) usage; [[ -z "$command" || "$command" == "help" ]] || exit 1 ;;
 esac
