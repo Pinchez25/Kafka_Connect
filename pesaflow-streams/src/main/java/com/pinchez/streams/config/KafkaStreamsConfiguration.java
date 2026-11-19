@@ -2,6 +2,7 @@ package com.pinchez.streams.config;
 
 import com.pinchez.streams.serde.AvroSerdeFactory;
 import com.pinchez.streams.topology.PesaflowTopology;
+import java.time.Clock;
 import java.util.stream.Stream;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.config.TopicConfig;
@@ -17,6 +18,11 @@ import org.springframework.kafka.streams.KafkaStreamsInteractiveQueryService;
 @Configuration(proxyBeanMethods = false)
 @EnableKafkaStreams
 class KafkaStreamsConfiguration {
+
+    @Bean
+    Clock clock() {
+        return Clock.systemUTC();
+    }
 
     @Bean
     AvroSerdeFactory avroSerdeFactory(StreamsProperties properties) {

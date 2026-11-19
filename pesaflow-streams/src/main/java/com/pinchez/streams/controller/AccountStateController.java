@@ -5,24 +5,36 @@ import com.pinchez.events.AccountSummary;
 import com.pinchez.events.Balance;
 import com.pinchez.events.EnrichedTransaction;
 import com.pinchez.streams.client.RemoteQueryClient;
+import com.pinchez.streams.dto.AccountActivityResponse;
 import com.pinchez.streams.mapper.QueryResponseMapper;
+import com.pinchez.streams.service.AccountActivityService;
 import com.pinchez.streams.service.QueryResult;
 import com.pinchez.streams.service.StateStoreQueryService;
 import com.pinchez.streams.topology.StoreNames;
 import jakarta.servlet.http.HttpServletRequest;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequiredArgsConstructor
 class AccountStateController {
 
+    private static final Duration DEFAULT_ACTIVITY_RANGE = Duration.ofHours(1);
+
     private final StateStoreQueryService queries;
+    private final AccountActivityService activity;
     private final RemoteQueryClient remote;
+    private final Clock clock;
 
     @GetMapping("/balances/{accountId}")
     ResponseEntity<?> balance(@PathVariable UUID accountId, HttpServletRequest request) {
@@ -66,6 +78,23 @@ class AccountStateController {
                         EnrichedTransaction.class,
                         QueryResponseMapper::toResponse),
                 request);
+    }
+
+    @GetMapping("/accounts/{accountId}/activity")
+    ResponseEntity<?> activity(
+            @PathVariable UUID accountId,
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to,
+            HttpServletRequest request) {
+        var end = to != null ? to : clock.instant();
+        var start = from != null ? from : end.minus(DEFAULT_ACTIVITY_RANGE);
+        if (start.isAfter(end)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'from' must not be after 'to'");
+        }
+        return switch (activity.activity(accountId, start, end)) {
+            case QueryResult.Local<AccountActivityResponse>(var value) -> ResponseEntity.ok(value);
+            case QueryResult.Remote<AccountActivityResponse>(var owner) -> remote.forward(owner, request);
+        };
     }
 
     private ResponseEntity<?> respond(QueryResult<Object> result, HttpServletRequest request) {

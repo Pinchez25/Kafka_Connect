@@ -24,6 +24,7 @@ public final class PesaflowTopology {
         var balances = new BalanceTopology(topics, serdes).addTo(sources);
         new AccountInsightsTopology(serdes).addTo(sources, enriched, balances);
         new TransactionSenderTopology(topics, serdes).addTo(sources);
+        new AccountActivityTopology(properties.activity(), serdes).addTo(enriched);
         new FraudDetectionTopology(properties, serdes).addTo(enriched, sources);
     }
 }

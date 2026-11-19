@@ -10,6 +10,7 @@ public final class StoreNames {
     public static final String ACCOUNT_SUMMARIES = "account-summaries";
     public static final String TRANSACTIONS_BY_ID = "transactions-by-id";
     public static final String TRANSACTION_SENDERS = "transaction-senders";
+    public static final String ACCOUNT_ACTIVITY = "account-activity";
     public static final String TRANSFER_VELOCITY = "transfer-velocity";
     public static final String ROLLING_SPEND = "rolling-spend";
     public static final String NIGHT_BETTING = "night-betting";

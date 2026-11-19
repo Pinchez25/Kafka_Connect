@@ -40,6 +40,10 @@ pesaflow:
     accounts-table:
       versioned: true
       history-retention: 30d
+    activity:
+      window: 1m
+      grace: 30s
+      retention: 1h
     fraud:
       zone-id: Africa/Nairobi
       transfer-velocity:

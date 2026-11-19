@@ -20,6 +20,7 @@ public record StreamsProperties(
         @NotNull @Valid Topics topics,
         @NotNull @Valid OutputTopics outputTopics,
         @NotNull @Valid AccountsTable accountsTable,
+        @NotNull @Valid Activity activity,
         @NotNull @Valid Fraud fraud) {
 
     public record Topics(
@@ -43,6 +44,11 @@ public record StreamsProperties(
      * @param historyRetention how far back versions are kept
      */
     public record AccountsTable(boolean versioned, @NotNull Duration historyRetention) {}
+
+    public record Activity(
+            @NotNull Duration window,
+            @NotNull Duration grace,
+            @NotNull Duration retention) {}
 
     public record Fraud(
             @NotNull ZoneId zoneId,

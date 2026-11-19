@@ -23,6 +23,7 @@ import org.apache.kafka.streams.TestInputTopic;
 import org.apache.kafka.streams.TestOutputTopic;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.streams.state.KeyValueStore;
+import org.apache.kafka.streams.state.WindowStore;
 
 /** Runs the whole PesaflowTopology in a TopologyTestDriver with an in-memory schema registry. */
 public final class TopologyHarness implements AutoCloseable {
@@ -64,6 +65,7 @@ public final class TopologyHarness implements AutoCloseable {
                 TOPICS,
                 new StreamsProperties.OutputTopics(1, (short) 1),
                 new StreamsProperties.AccountsTable(versionedAccounts, Duration.ofDays(30)),
+                new StreamsProperties.Activity(Duration.ofMinutes(1), Duration.ofSeconds(30), Duration.ofHours(1)),
                 FRAUD);
         var builder = new StreamsBuilder();
         new PesaflowTopology(properties, serdes).addTo(builder);
@@ -118,6 +120,10 @@ public final class TopologyHarness implements AutoCloseable {
 
     public <V> KeyValueStore<String, V> store(String name) {
         return driver.getKeyValueStore(name);
+    }
+
+    public <V> WindowStore<String, V> windowStore(String name) {
+        return driver.getWindowStore(name);
     }
 
     public void advanceWallClock(Duration duration) {
