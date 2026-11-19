@@ -6,10 +6,12 @@ import com.pinchez.wallet.common.dto.PageResponse;
 import com.pinchez.wallet.merchant.dto.MerchantResponse;
 import com.pinchez.wallet.merchant.dto.RegisterMerchantRequest;
 import com.pinchez.wallet.merchant.entity.Merchant;
+import com.pinchez.wallet.merchant.enums.MerchantCategory;
 import com.pinchez.wallet.merchant.mapper.MerchantMapper;
 import com.pinchez.wallet.merchant.repository.MerchantRepository;
 import java.time.Clock;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +45,10 @@ public class MerchantService {
 
     public PageResponse<MerchantResponse> list(Pageable pageable) {
         return PageResponse.from(merchants.findAll(pageable).map(mapper::toResponse));
+    }
+
+    public Optional<MerchantResponse> anyInCategory(MerchantCategory category) {
+        return merchants.findFirstByCategory(category).map(mapper::toResponse);
     }
 
     public List<String> allTillNumbers() {

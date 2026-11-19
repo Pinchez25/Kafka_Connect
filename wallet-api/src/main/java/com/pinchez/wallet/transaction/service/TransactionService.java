@@ -48,7 +48,12 @@ public class TransactionService {
 
     @Transactional
     public TransactionResponse submit(TransactionRequest request) {
-        var now = clock.instant();
+        return submitAt(request, clock.instant());
+    }
+
+    /** Records a transaction as if it happened at {@code now}. Used by the load generator to simulate late events. */
+    @Transactional
+    public TransactionResponse submitAt(TransactionRequest request, Instant now) {
         var transaction = switch (request) {
             case P2pTransfer(var fromAccountId, var toAccountId, var amount) ->
                 transfer(fromAccountId, toAccountId, amount, now);

@@ -1,6 +1,7 @@
 package com.pinchez.wallet.merchant.repository;
 
 import com.pinchez.wallet.merchant.entity.Merchant;
+import com.pinchez.wallet.merchant.enums.MerchantCategory;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,6 +13,8 @@ public interface MerchantRepository extends JpaRepository<Merchant, UUID> {
     boolean existsByTillNumber(String tillNumber);
 
     Optional<Merchant> findByTillNumber(String tillNumber);
+
+    Optional<Merchant> findFirstByCategory(MerchantCategory category);
 
     @Query("select m.tillNumber from Merchant m")
     List<String> findAllTillNumbers();
