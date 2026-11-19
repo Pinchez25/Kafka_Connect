@@ -20,6 +20,12 @@ spring:
         commit.interval.ms: 1000
         statestore.cache.max.bytes: 10485760
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+
 pesaflow:
   streams:
     schema-registry-url: http://localhost:8081
