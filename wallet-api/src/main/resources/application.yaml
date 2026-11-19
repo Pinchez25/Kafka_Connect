@@ -1,3 +1,6 @@
+server:
+  port: ${SERVER_PORT:8080}
+
 spring:
   application:
     name: wallet-api
@@ -5,9 +8,9 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: jdbc:postgresql://localhost:5434/pesaflow
-    username: pesaflow
-    password: pesaflow
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/pesaflow}
+    username: ${DB_USERNAME:pesaflow}
+    password: ${DB_PASSWORD:pesaflow}
   jpa:
     open-in-view: false
     hibernate:
@@ -21,15 +24,15 @@ spring:
 
 pesaflow:
   wallet:
-    currency: KES
-    zone-id: Africa/Nairobi
+    currency: ${WALLET_CURRENCY:KES}
+    zone-id: ${WALLET_ZONE_ID:Africa/Nairobi}
     daily-limits:
       BASIC: 70000
       FULL: 500000
   load-generator:
-    enabled: false
-    interval: 1s
-    transactions-per-tick: 5
+    enabled: ${LOAD_GENERATOR_ENABLED:false}
+    interval: ${LOAD_GENERATOR_INTERVAL:1s}
+    transactions-per-tick: ${LOAD_GENERATOR_TRANSACTIONS_PER_TICK:5}
     seed-accounts: 200
     seed-merchants: 30
     new-account-probability: 0.05
