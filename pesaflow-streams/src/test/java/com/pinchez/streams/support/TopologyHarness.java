@@ -52,6 +52,8 @@ public final class TopologyHarness implements AutoCloseable {
                     LocalTime.MIDNIGHT, LocalTime.of(5, 0), Duration.ofMinutes(10), Duration.ofMinutes(2), 3),
             new StreamsProperties.Fraud.RoundTrip(Duration.ofMinutes(5), Duration.ofMinutes(1), new BigDecimal("0.1")));
 
+    public static final Duration DEDUPLICATION_RETENTION = Duration.ofDays(7);
+
     private final String registryScope = "topology-harness-" + UUID.randomUUID();
     private final AvroSerdeFactory serdes = new AvroSerdeFactory("mock://" + registryScope);
     private final TopologyTestDriver driver;
@@ -66,6 +68,7 @@ public final class TopologyHarness implements AutoCloseable {
                 new StreamsProperties.OutputTopics(1, (short) 1),
                 new StreamsProperties.AccountsTable(versionedAccounts, Duration.ofDays(30)),
                 new StreamsProperties.Activity(Duration.ofMinutes(1), Duration.ofSeconds(30), Duration.ofHours(1)),
+                new StreamsProperties.Deduplication(DEDUPLICATION_RETENTION),
                 FRAUD);
         var builder = new StreamsBuilder();
         new PesaflowTopology(properties, serdes).addTo(builder);
@@ -131,8 +134,12 @@ public final class TopologyHarness implements AutoCloseable {
     }
 
     public double droppedRecords() {
+        return metricTotal("dropped-records-total");
+    }
+
+    public double metricTotal(String name) {
         return driver.metrics().entrySet().stream()
-                .filter(metric -> metric.getKey().name().equals("dropped-records-total"))
+                .filter(metric -> metric.getKey().name().equals(name))
                 .mapToDouble(metric -> ((Number) metric.getValue().metricValue()).doubleValue())
                 .sum();
     }

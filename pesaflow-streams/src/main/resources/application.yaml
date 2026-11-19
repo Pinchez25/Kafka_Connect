@@ -50,6 +50,8 @@ pesaflow:
       window: 1m
       grace: 30s
       retention: 1h
+    deduplication:
+      retention: ${DEDUPLICATION_RETENTION:7d}
     fraud:
       zone-id: ${FRAUD_ZONE_ID:Africa/Nairobi}
       transfer-velocity:

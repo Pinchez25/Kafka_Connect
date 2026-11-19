@@ -21,6 +21,7 @@ public record StreamsProperties(
         @NotNull @Valid OutputTopics outputTopics,
         @NotNull @Valid AccountsTable accountsTable,
         @NotNull @Valid Activity activity,
+        @NotNull @Valid Deduplication deduplication,
         @NotNull @Valid Fraud fraud) {
 
     public record Topics(
@@ -49,6 +50,9 @@ public record StreamsProperties(
             @NotNull Duration window,
             @NotNull Duration grace,
             @NotNull Duration retention) {}
+
+    /** Transaction ids are remembered for {@code retention} of stream time; older duplicates get through. */
+    public record Deduplication(@NotNull Duration retention) {}
 
     public record Fraud(
             @NotNull ZoneId zoneId,

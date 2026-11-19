@@ -7,6 +7,7 @@ import com.pinchez.events.CompletedTransaction;
 import com.pinchez.streams.config.StreamsProperties;
 import com.pinchez.streams.extractor.CdcTimestampExtractor;
 import com.pinchez.streams.mapper.CompletedTransactionMapper;
+import com.pinchez.streams.processor.DeduplicationProcessor;
 import com.pinchez.streams.serde.AvroSerdeFactory;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
@@ -37,6 +38,11 @@ public record CdcSources(
                         Consumed.with(Serdes.String(), serdes.<Transaction>valueSerde())
                                 .withTimestampExtractor(EVENT_TIME)
                                 .withName("cdc-transactions"))
+                .processValues(
+                        new DeduplicationProcessor.Supplier(
+                                StoreNames.TRANSACTION_IDS,
+                                properties.deduplication().retention()),
+                        Named.as("deduplicate-transactions"))
                 .filter((_, row) -> row != null && COMPLETED.equals(row.getStatus()), Named.as("completed-only"))
                 .mapValues(CompletedTransactionMapper::toCompletedTransaction, Named.as("to-completed-transaction"));
 

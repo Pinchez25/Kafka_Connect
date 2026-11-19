@@ -15,6 +15,7 @@ public final class StoreNames {
     public static final String ROLLING_SPEND = "rolling-spend";
     public static final String NIGHT_BETTING = "night-betting";
     public static final String ROUND_TRIP = "round-trip";
+    public static final String TRANSACTION_IDS = "transaction-ids";
 
     private StoreNames() {}
 }
