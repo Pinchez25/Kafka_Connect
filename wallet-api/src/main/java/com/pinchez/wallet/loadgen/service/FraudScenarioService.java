@@ -10,6 +10,7 @@ import com.pinchez.wallet.merchant.enums.MerchantCategory;
 import com.pinchez.wallet.merchant.service.MerchantService;
 import com.pinchez.wallet.transaction.dto.TransactionRequest.MerchantPayment;
 import com.pinchez.wallet.transaction.dto.TransactionRequest.P2pTransfer;
+import com.pinchez.wallet.transaction.dto.TransactionRequest.TopUp;
 import com.pinchez.wallet.transaction.service.TransactionService;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -28,6 +29,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class FraudScenarioService {
 
+    private static final Duration HABIT_SETTLE_TIME = Duration.ofSeconds(2);
+
     private final AccountService accountService;
     private final MerchantService merchantService;
     private final TransactionService transactionService;
@@ -41,6 +44,8 @@ public class FraudScenarioService {
             case NIGHT_BETTING_BURST -> nightBettingBurst();
             case ROUND_TRIP -> roundTrip();
             case LATE_EVENTS -> lateEvents();
+            case UNUSUAL_AMOUNT -> unusualAmount();
+            case DORMANT_ACCOUNT -> dormantAccount();
         };
     }
 
@@ -78,7 +83,7 @@ public class FraudScenarioService {
 
     private ScenarioResult nightBettingBurst() {
         var gambler = openAccount();
-        var tillNumber = bettingTill();
+        var tillNumber = till(MerchantCategory.BETTING);
         var paid = repeat(
                 4,
                 () -> transactionService
@@ -117,6 +122,58 @@ public class FraudScenarioService {
                         + " dropped-records-total rises. The last 3 are 20 seconds late and still counted.");
     }
 
+    private ScenarioResult unusualAmount() {
+        var tillNumber = till(MerchantCategory.GROCERY);
+        var flagged = openAccount();
+        var queued = openAccount();
+        var sent = new ArrayList<UUID>();
+        for (var account : List.of(flagged, queued)) {
+            sent.addAll(repeat(10, () -> pay(account, tillNumber, "100")));
+        }
+        letHabitArriveFirst();
+        sent.add(pay(flagged, tillNumber, "2500"));
+        sent.add(pay(queued, tillNumber, "1500"));
+        return new ScenarioResult(
+                FraudScenario.UNUSUAL_AMOUNT,
+                List.of(flagged, queued),
+                sent,
+                "Both accounts make 10 payments of 100. UNUSUAL_AMOUNT in pesaflow.fraud.alerts for the first (2,500 is"
+                        + " 25x its average) and in pesaflow.fraud.review for the second (1,500 is 15x)");
+    }
+
+    private ScenarioResult dormantAccount() {
+        var account = openAccount();
+        var agentNumber = FakeData.agentNumber(ThreadLocalRandom.current());
+        var lastSeen = clock.instant().minus(Duration.ofDays(40));
+        var topUp = transactionService
+                .submitAt(new TopUp(account, agentNumber, new BigDecimal("2500")), lastSeen)
+                .id();
+        return new ScenarioResult(
+                FraudScenario.DORMANT_ACCOUNT,
+                List.of(account),
+                List.of(topUp),
+                "A top-up stamped 40 days ago and nothing since: a DormantAccount record in pesaflow.accounts.dormant"
+                        + " at the next dormancy scan");
+    }
+
+    /**
+     * CDC records are keyed by transaction id, so one account's payments sit on different partitions and can be
+     * reordered once Kafka Streams re-keys them by account. The pause lets the habit reach the baseline first.
+     */
+    private static void letHabitArriveFirst() {
+        try {
+            Thread.sleep(HABIT_SETTLE_TIME);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private UUID pay(UUID from, String tillNumber, String amount) {
+        return transactionService
+                .submit(new MerchantPayment(from, tillNumber, new BigDecimal(amount)))
+                .id();
+    }
+
     private UUID transfer(UUID from, UUID to, String amount) {
         return transactionService
                 .submit(new P2pTransfer(from, to, new BigDecimal(amount)))
@@ -141,19 +198,17 @@ public class FraudScenarioService {
         }
     }
 
-    private String bettingTill() {
+    private String till(MerchantCategory category) {
         var random = ThreadLocalRandom.current();
         while (true) {
-            var existing = merchantService.anyInCategory(MerchantCategory.BETTING);
+            var existing = merchantService.anyInCategory(category);
             if (existing.isPresent()) {
                 return existing.get().tillNumber();
             }
             try {
                 return merchantService
                         .register(new RegisterMerchantRequest(
-                                FakeData.tillNumber(random),
-                                FakeData.merchantName(MerchantCategory.BETTING, random),
-                                MerchantCategory.BETTING))
+                                FakeData.tillNumber(random), FakeData.merchantName(category, random), category))
                         .tillNumber();
             } catch (DuplicateResourceException _) {
             }

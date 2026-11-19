@@ -112,3 +112,9 @@ POST http://localhost:8080/load-generator/scenarios/round-trip
 
 ### Late and out-of-order events (backdated created_at)
 POST http://localhost:8080/load-generator/scenarios/late-events
+
+### Unusual amounts: one account to the fraud alerts topic, one to the review queue (UNUSUAL_AMOUNT)
+POST http://localhost:8080/load-generator/scenarios/unusual-amount
+
+### Dormant account: a single top-up stamped 40 days ago
+POST http://localhost:8080/load-generator/scenarios/dormant-account

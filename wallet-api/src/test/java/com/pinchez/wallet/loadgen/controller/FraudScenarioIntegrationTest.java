@@ -61,6 +61,31 @@ class FraudScenarioIntegrationTest {
     }
 
     @Test
+    void unusualAmountEndsEachAccountsHabitWithOneLargePayment() throws Exception {
+        var result = mvc.post().uri("/load-generator/scenarios/unusual-amount").exchange();
+
+        var transactions = ids(result, "$.transactionIds").stream()
+                .map(transactionService::get)
+                .toList();
+        assertThat(transactions)
+                .hasSize(22)
+                .allSatisfy(transaction -> assertThat(transaction.status()).isEqualTo(TransactionStatus.COMPLETED));
+        assertThat(transactions.subList(20, 22))
+                .extracting(transaction -> transaction.amount().intValue())
+                .containsExactly(2500, 1500);
+    }
+
+    @Test
+    void dormantAccountHasOnlyAFortyDayOldTopUp() throws Exception {
+        var result = mvc.post().uri("/load-generator/scenarios/dormant-account").exchange();
+
+        var transactions = ids(result, "$.transactionIds");
+        assertThat(transactions).hasSize(1);
+        assertThat(transactionService.get(transactions.getFirst()).createdAt())
+                .isBefore(Instant.now().minus(Duration.ofDays(39)));
+    }
+
+    @Test
     void unknownScenarioIsABadRequest() {
         assertThat(mvc.post().uri("/load-generator/scenarios/heist")).hasStatus(HttpStatus.BAD_REQUEST);
     }
