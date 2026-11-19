@@ -46,9 +46,9 @@ class TransactionSenderTopologyTest {
                 CdcRecords.merchantPayment(SENDER, UUID.randomUUID(), "50.00").build());
         senders.readValuesToList();
 
-        harness.pipe(
-                CdcRecords.account(SENDER, "FULL").setVersion(1).build(),
-                CdcRecords.OPENED_AT.plus(Duration.ofHours(2)));
+        harness.pipe(CdcRecords.accountVersion(SENDER, "FULL", CdcRecords.OPENED_AT.plus(Duration.ofHours(2)))
+                .setVersion(1)
+                .build());
 
         var updated = senders.readKeyValuesToMap();
         assertThat(updated)

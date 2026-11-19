@@ -69,9 +69,9 @@ class AccountInsightsTopologyTest {
         assertThat(summaries.get(ACCOUNT.toString()).getBalance()).isEqualByComparingTo("0.00");
 
         harness.pipe(CdcRecords.topUp(ACCOUNT, "750.00").build());
-        harness.pipe(
-                CdcRecords.account(ACCOUNT, "BASIC").setStatus("FROZEN").build(),
-                CdcRecords.OPENED_AT.plus(Duration.ofHours(2)));
+        harness.pipe(CdcRecords.accountVersion(ACCOUNT, "BASIC", CdcRecords.OPENED_AT.plus(Duration.ofHours(2)))
+                .setStatus("FROZEN")
+                .build());
 
         var summary = summaries.get(ACCOUNT.toString());
         assertThat(summary.getBalance()).isEqualByComparingTo("750.00");

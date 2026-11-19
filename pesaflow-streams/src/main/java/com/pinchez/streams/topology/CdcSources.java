@@ -5,6 +5,7 @@ import com.pinchez.cdc.Merchant;
 import com.pinchez.cdc.Transaction;
 import com.pinchez.events.CompletedTransaction;
 import com.pinchez.streams.config.StreamsProperties;
+import com.pinchez.streams.extractor.CdcTimestampExtractor;
 import com.pinchez.streams.mapper.CompletedTransactionMapper;
 import com.pinchez.streams.serde.AvroSerdeFactory;
 import org.apache.kafka.common.serialization.Serdes;
@@ -26,6 +27,7 @@ public record CdcSources(
         GlobalKTable<String, Merchant> merchants) {
 
     private static final String COMPLETED = "COMPLETED";
+    private static final CdcTimestampExtractor EVENT_TIME = new CdcTimestampExtractor();
 
     public static CdcSources register(StreamsBuilder builder, StreamsProperties properties, AvroSerdeFactory serdes) {
         var topics = properties.topics();
@@ -33,20 +35,25 @@ public record CdcSources(
         var completedTransactions = builder.stream(
                         topics.cdcTransactions(),
                         Consumed.with(Serdes.String(), serdes.<Transaction>valueSerde())
+                                .withTimestampExtractor(EVENT_TIME)
                                 .withName("cdc-transactions"))
                 .filter((_, row) -> row != null && COMPLETED.equals(row.getStatus()), Named.as("completed-only"))
                 .mapValues(CompletedTransactionMapper::toCompletedTransaction, Named.as("to-completed-transaction"));
 
         var accounts = builder.table(
                 topics.cdcAccounts(),
-                Consumed.with(Serdes.String(), serdes.<Account>valueSerde()).withName("cdc-accounts"),
+                Consumed.with(Serdes.String(), serdes.<Account>valueSerde())
+                        .withTimestampExtractor(EVENT_TIME)
+                        .withName("cdc-accounts"),
                 accountsStore(properties.accountsTable())
                         .withKeySerde(Serdes.String())
                         .withValueSerde(serdes.valueSerde()));
 
         var merchants = builder.globalTable(
                 topics.cdcMerchants(),
-                Consumed.with(Serdes.String(), serdes.<Merchant>valueSerde()).withName("cdc-merchants"),
+                Consumed.with(Serdes.String(), serdes.<Merchant>valueSerde())
+                        .withTimestampExtractor(EVENT_TIME)
+                        .withName("cdc-merchants"),
                 Materialized.<String, Merchant, KeyValueStore<Bytes, byte[]>>as(StoreNames.MERCHANTS)
                         .withKeySerde(Serdes.String())
                         .withValueSerde(serdes.valueSerde()));

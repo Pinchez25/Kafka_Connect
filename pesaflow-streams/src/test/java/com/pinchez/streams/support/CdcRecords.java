@@ -38,6 +38,10 @@ public final class CdcRecords {
                 .build();
     }
 
+    public static Account.Builder accountVersion(UUID id, String kycLevel, Instant updatedAt) {
+        return account(id, kycLevel).setUpdatedAt(updatedAt.toString());
+    }
+
     public static Transaction.Builder p2p(UUID from, UUID to, String amount) {
         return transaction("P2P", amount).setFromAccountId(from).setToAccountId(to);
     }

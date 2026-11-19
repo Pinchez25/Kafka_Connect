@@ -69,13 +69,10 @@ public final class TopologyHarness implements AutoCloseable {
         return new TopologyHarness(false);
     }
 
-    public Account pipe(Account account, Instant timestamp) {
-        accounts.pipeInput(account.getId().toString(), account, timestamp);
-        return account;
-    }
-
+    /** Event time comes from the row's updated_at (see CdcTimestampExtractor). */
     public Account pipe(Account account) {
-        return pipe(account, CdcRecords.OPENED_AT);
+        accounts.pipeInput(account.getId().toString(), account, Instant.parse(account.getUpdatedAt()));
+        return account;
     }
 
     public void deleteAccount(UUID accountId, Instant timestamp) {
@@ -87,13 +84,10 @@ public final class TopologyHarness implements AutoCloseable {
         return merchant;
     }
 
-    public Transaction pipe(Transaction transaction, Instant timestamp) {
-        transactions.pipeInput(transaction.getId().toString(), transaction, timestamp);
-        return transaction;
-    }
-
+    /** Event time comes from the row's created_at (see CdcTimestampExtractor). */
     public Transaction pipe(Transaction transaction) {
-        return pipe(transaction, Instant.parse(transaction.getCreatedAt()));
+        transactions.pipeInput(transaction.getId().toString(), transaction, Instant.parse(transaction.getCreatedAt()));
+        return transaction;
     }
 
     public void pipeTombstone(String transactionKey) {

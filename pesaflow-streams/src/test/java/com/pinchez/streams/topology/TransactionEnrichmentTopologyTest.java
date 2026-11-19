@@ -87,10 +87,10 @@ class TransactionEnrichmentTopologyTest {
     /** BASIC at 08:00, upgraded to FULL at 10:00, then a transaction stamped 09:00 arrives. */
     private static KycLevel kycLevelSeenByLateTransaction(TopologyHarness harness) {
         var enriched = harness.<EnrichedTransaction>output(TopologyHarness.TOPICS.enrichedTransactions());
-        harness.pipe(CdcRecords.account(SENDER, "BASIC").build(), CdcRecords.OPENED_AT);
-        harness.pipe(
-                CdcRecords.account(SENDER, "FULL").setVersion(1).build(),
-                CdcRecords.OPENED_AT.plus(Duration.ofHours(2)));
+        harness.pipe(CdcRecords.account(SENDER, "BASIC").build());
+        harness.pipe(CdcRecords.accountVersion(SENDER, "FULL", CdcRecords.OPENED_AT.plus(Duration.ofHours(2)))
+                .setVersion(1)
+                .build());
 
         harness.pipe(CdcRecords.p2p(SENDER, RECIPIENT, "100.00").build());
 
