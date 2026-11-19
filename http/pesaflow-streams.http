@@ -29,3 +29,6 @@ GET http://localhost:8082/actuator/metrics/kafka.stream.task.dropped.records.tot
 
 ### Last activity (store written by a Processor API processor)
 GET http://localhost:8082/accounts/{{account}}/last-activity
+
+### Duplicate CDC rows dropped by the deduplication processor (custom metric)
+GET http://localhost:8082/actuator/metrics/kafka.stream.pesaflow.deduplication.duplicates.dropped.total

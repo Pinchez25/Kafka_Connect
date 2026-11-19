@@ -7,10 +7,14 @@ import java.util.stream.Stream;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
+import org.springframework.kafka.config.KafkaStreamsInfrastructureCustomizer;
 import org.springframework.kafka.config.StreamsBuilderFactoryBean;
+import org.springframework.kafka.config.StreamsBuilderFactoryBeanConfigurer;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.streams.KafkaStreamsInteractiveQueryService;
@@ -36,6 +40,17 @@ class KafkaStreamsConfiguration {
         return topology;
     }
 
+    /** Lazy: the topology bean needs the StreamsBuilder, which this configurer helps create. */
+    @Bean
+    StreamsBuilderFactoryBeanConfigurer processorApiTopology(ObjectProvider<PesaflowTopology> pesaflowTopology) {
+        return factoryBean -> factoryBean.setInfrastructureCustomizer(new KafkaStreamsInfrastructureCustomizer() {
+            @Override
+            public void configureTopology(Topology topology) {
+                pesaflowTopology.getObject().addTo(topology);
+            }
+        });
+    }
+
     @Bean
     KafkaStreamsInteractiveQueryService interactiveQueryService(StreamsBuilderFactoryBean streamsBuilder) {
         return new KafkaStreamsInteractiveQueryService(streamsBuilder);
@@ -50,6 +65,7 @@ class KafkaStreamsConfiguration {
                         topics.merchantPayments(),
                         topics.enrichedTransactions(),
                         topics.fraudAlerts(),
+                        topics.fraudReview(),
                         topics.dormantAccounts())
                 .map(name -> topic(properties, name).build());
         var tables = Stream.of(topics.balances(), topics.transactionSenders())

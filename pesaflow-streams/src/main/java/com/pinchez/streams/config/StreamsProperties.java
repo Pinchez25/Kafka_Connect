@@ -37,6 +37,7 @@ public record StreamsProperties(
             @NotBlank String balances,
             @NotBlank String transactionSenders,
             @NotBlank String fraudAlerts,
+            @NotBlank String fraudReview,
             @NotBlank String dormantAccounts) {}
 
     public record OutputTopics(
@@ -68,7 +69,8 @@ public record StreamsProperties(
             @NotNull @Valid RollingSpend rollingSpend,
             @NotNull @Valid NewAccount newAccount,
             @NotNull @Valid NightBetting nightBetting,
-            @NotNull @Valid RoundTrip roundTrip) {
+            @NotNull @Valid RoundTrip roundTrip,
+            @NotNull @Valid UnusualAmount unusualAmount) {
 
         public record TransferVelocity(
                 @NotNull Duration window,
@@ -96,5 +98,14 @@ public record StreamsProperties(
                 @NotNull Duration window,
                 @NotNull Duration grace,
                 @DecimalMin("0.0") @DecimalMax("1.0") BigDecimal maxAmountDifference) {}
+
+        /**
+         * Compares an outgoing amount with the account's own average. {@code reviewMultiplier} sends it to the review
+         * queue, {@code highMultiplier} raises a fraud alert.
+         */
+        public record UnusualAmount(
+                @Positive int minHistory,
+                @NotNull @DecimalMin("1.0") BigDecimal reviewMultiplier,
+                @NotNull @DecimalMin("1.0") BigDecimal highMultiplier) {}
     }
 }

@@ -3,7 +3,9 @@ package com.pinchez.streams.topology;
 import com.pinchez.streams.config.StreamsProperties;
 import com.pinchez.streams.serde.AvroSerdeFactory;
 import com.pinchez.streams.topology.fraud.FraudDetectionTopology;
+import com.pinchez.streams.topology.fraud.UnusualAmountRule;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
 
 public final class PesaflowTopology {
 
@@ -28,5 +30,10 @@ public final class PesaflowTopology {
         new TransactionSenderTopology(topics, serdes).addTo(sources);
         new AccountActivityTopology(properties.activity(), serdes).addTo(enriched);
         new FraudDetectionTopology(properties, serdes).addTo(enriched, sources);
+    }
+
+    /** The parts written directly against the Processor API, added once the DSL has built the topology. */
+    public void addTo(Topology topology) {
+        new UnusualAmountRule(properties.fraud().unusualAmount(), properties.topics(), serdes).addTo(topology);
     }
 }

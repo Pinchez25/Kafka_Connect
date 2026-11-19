@@ -3,6 +3,7 @@ package com.pinchez.streams.topology.fraud;
 import com.pinchez.events.EnrichedTransaction;
 import com.pinchez.events.FraudAlert;
 import com.pinchez.streams.config.StreamsProperties;
+import com.pinchez.streams.processor.AlertHeadersProcessor;
 import com.pinchez.streams.serde.AvroSerdeFactory;
 import com.pinchez.streams.topology.CdcSources;
 import java.util.List;
@@ -37,8 +38,10 @@ public final class FraudDetectionTopology {
                     ? detected
                     : alerts.merge(detected, Named.as("merge-" + rule.getClass().getSimpleName()));
         }
-        alerts.to(
-                properties.topics().fraudAlerts(),
-                Produced.with(Serdes.String(), serdes.<FraudAlert>valueSerde()).withName("fraud-alerts-sink"));
+        alerts.processValues(AlertHeadersProcessor::new, Named.as("fraud-alert-headers"))
+                .to(
+                        properties.topics().fraudAlerts(),
+                        Produced.with(Serdes.String(), serdes.<FraudAlert>valueSerde())
+                                .withName("fraud-alerts-sink"));
     }
 }

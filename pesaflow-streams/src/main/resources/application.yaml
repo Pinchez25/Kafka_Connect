@@ -40,6 +40,7 @@ pesaflow:
       balances: pesaflow.balances
       transaction-senders: pesaflow.transactions.with-sender
       fraud-alerts: pesaflow.fraud.alerts
+      fraud-review: pesaflow.fraud.review
       dormant-accounts: pesaflow.accounts.dormant
     output-topics:
       partitions: ${OUTPUT_TOPIC_PARTITIONS:3}
@@ -80,3 +81,7 @@ pesaflow:
         window: 5m
         grace: 1m
         max-amount-difference: 0.1
+      unusual-amount:
+        min-history: 10
+        review-multiplier: 10
+        high-multiplier: 20

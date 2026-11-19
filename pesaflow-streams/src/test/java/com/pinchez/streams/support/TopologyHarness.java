@@ -40,6 +40,7 @@ public final class TopologyHarness implements AutoCloseable {
             "balances",
             "transaction-senders",
             "fraud-alerts",
+            "fraud-review",
             "dormant-accounts");
 
     public static final ZoneId NAIROBI = ZoneId.of("Africa/Nairobi");
@@ -52,7 +53,8 @@ public final class TopologyHarness implements AutoCloseable {
             new StreamsProperties.Fraud.NewAccount(Duration.ofHours(24), new BigDecimal("10000")),
             new StreamsProperties.Fraud.NightBetting(
                     LocalTime.MIDNIGHT, LocalTime.of(5, 0), Duration.ofMinutes(10), Duration.ofMinutes(2), 3),
-            new StreamsProperties.Fraud.RoundTrip(Duration.ofMinutes(5), Duration.ofMinutes(1), new BigDecimal("0.1")));
+            new StreamsProperties.Fraud.RoundTrip(Duration.ofMinutes(5), Duration.ofMinutes(1), new BigDecimal("0.1")),
+            new StreamsProperties.Fraud.UnusualAmount(10, new BigDecimal("10"), new BigDecimal("20")));
 
     /** Wall-clock time starts on the test data's day, so wall-clock punctuations don't depend on today's date. */
     public static final Instant WALL_CLOCK_START = CdcRecords.OPENED_AT;
@@ -78,12 +80,15 @@ public final class TopologyHarness implements AutoCloseable {
                 new StreamsProperties.DormantAccount(DORMANCY, Duration.ofMinutes(1), dormancyScan),
                 FRAUD);
         var builder = new StreamsBuilder();
-        new PesaflowTopology(properties, serdes).addTo(builder);
+        var pesaflow = new PesaflowTopology(properties, serdes);
+        pesaflow.addTo(builder);
+        var topology = builder.build();
+        pesaflow.addTo(topology);
 
         var config = new Properties();
         config.put(StreamsConfig.APPLICATION_ID_CONFIG, "topology-harness");
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "unused:9092");
-        driver = new TopologyTestDriver(builder.build(), config, WALL_CLOCK_START);
+        driver = new TopologyTestDriver(topology, config, WALL_CLOCK_START);
 
         accounts = input(TOPICS.cdcAccounts());
         merchants = input(TOPICS.cdcMerchants());
