@@ -9,6 +9,18 @@ RUN wget -q -O /tmp/converter.zip \
     && unzip -q /tmp/converter.zip -d /tmp \
     && mv "/tmp/confluentinc-kafka-connect-avro-converter-${AVRO_CONVERTER_VERSION}/lib" /avro-converter
 
+FROM alpine:3.22 AS http-sink
+
+ARG HTTP_SINK_VERSION=0.9.0
+ARG HTTP_SINK_SHA256=72fea14ea3c58a5c9d08e08c5dae2404cb5b04a8f73206c5d717d97e13fbbf07
+
+RUN wget -q -O /tmp/http-sink.tar \
+        "https://github.com/Aiven-Open/http-connector-for-apache-kafka/releases/download/v${HTTP_SINK_VERSION}/http-connector-for-apache-kafka-${HTTP_SINK_VERSION}.tar" \
+    && echo "${HTTP_SINK_SHA256}  /tmp/http-sink.tar" | sha256sum -c - \
+    && tar -xf /tmp/http-sink.tar -C /tmp \
+    && mv "/tmp/http-connector-for-apache-kafka-${HTTP_SINK_VERSION}" /http-sink
+
 FROM quay.io/debezium/connect:3.6.1.Final
 
 COPY --from=avro-converter /avro-converter /kafka/connect/confluent-avro-converter
+COPY --from=http-sink /http-sink /kafka/connect/aiven-http-sink

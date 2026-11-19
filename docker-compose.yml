@@ -70,6 +70,8 @@ services:
         condition: service_healthy
     ports:
       - "8083:8083"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment: &connect-environment
       BOOTSTRAP_SERVERS: kafka:29092
       GROUP_ID: pesaflow-connect
@@ -83,6 +85,7 @@ services:
       KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_EXACTLY_ONCE_SOURCE_SUPPORT: enabled
+      CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY: All
       CONNECT_CONFIG_PROVIDERS: env
       CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
       PESAFLOW_DB_PASSWORD: pesaflow
