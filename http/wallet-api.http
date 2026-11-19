@@ -94,3 +94,21 @@ POST http://localhost:8080/load-generator/start
 
 ### Stop load generator
 POST http://localhost:8080/load-generator/stop
+
+### Fraud scenario: >5 transfers in a minute (TRANSFER_VELOCITY)
+POST http://localhost:8080/load-generator/scenarios/velocity-burst
+
+### Fraud scenario: 36,000 sent within 10 minutes on a 70,000 limit (ROLLING_SPEND)
+POST http://localhost:8080/load-generator/scenarios/rolling-spend
+
+### Fraud scenario: brand-new account sends 15,000 (NEW_ACCOUNT_LARGE_TRANSFER)
+POST http://localhost:8080/load-generator/scenarios/new-account-large-transfer
+
+### Fraud scenario: betting burst (NIGHT_BETTING_BURST, only inside the configured night hours)
+POST http://localhost:8080/load-generator/scenarios/night-betting-burst
+
+### Fraud scenario: A→B then B→A (ROUND_TRIP_TRANSFER)
+POST http://localhost:8080/load-generator/scenarios/round-trip
+
+### Late and out-of-order events (backdated created_at)
+POST http://localhost:8080/load-generator/scenarios/late-events

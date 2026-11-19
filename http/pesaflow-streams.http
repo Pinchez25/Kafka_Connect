@@ -17,3 +17,12 @@ GET http://localhost:8082/accounts/{{account}}/largest-transaction
 
 ### Same balance from a second instance (started with --server.port=8086); forwarded if it doesn't own the key
 GET http://localhost:8086/balances/{{account}}
+
+### Per-minute transaction counts for the last hour (window store)
+GET http://localhost:8082/accounts/{{account}}/activity
+
+### Per-minute counts for an explicit range
+GET http://localhost:8082/accounts/{{account}}/activity?from=2026-11-19T08:00:00Z&to=2026-11-19T09:00:00Z
+
+### Late records dropped by windowed aggregations
+GET http://localhost:8082/actuator/metrics/kafka.stream.task.dropped.records.total
