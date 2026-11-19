@@ -42,7 +42,8 @@ class KafkaStreamsConfiguration {
                         topics.p2pTransfers(),
                         topics.topUps(),
                         topics.merchantPayments(),
-                        topics.enrichedTransactions())
+                        topics.enrichedTransactions(),
+                        topics.fraudAlerts())
                 .map(name -> topic(properties, name).build());
         var tables = Stream.of(topics.balances(), topics.transactionSenders())
                 .map(name -> topic(properties, name)

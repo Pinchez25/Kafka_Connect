@@ -1,0 +1,33 @@
+namespace com.pinchez.events;
+
+schema FraudAlert;
+
+enum FraudRule {
+    TRANSFER_VELOCITY,
+    ROLLING_SPEND,
+    NEW_ACCOUNT_LARGE_TRANSFER,
+    NIGHT_BETTING_BURST,
+    ROUND_TRIP_TRANSFER
+}
+
+record FraudAlert {
+    /** Deterministic per rule, account and window, so re-emitted alerts can be de-duplicated downstream. */
+    uuid alertId;
+    FraudRule rule;
+    uuid accountId;
+    string description;
+    @logicalType("timestamp-micros") long detectedAt;
+    union { null, @logicalType("timestamp-micros") long } windowStart = null;
+    union { null, @logicalType("timestamp-micros") long } windowEnd = null;
+    union { null, decimal(19, 2) } amount = null;
+    long? transactionCount = null;
+    array<uuid> transactionIds = [];
+}
+
+/** Running total of money an account sent within one window. */
+record RollingSpend {
+    decimal(19, 2) amount;
+    long transactionCount;
+    union { null, @logicalType("timestamp-micros") long } windowStart = null;
+    union { null, @logicalType("timestamp-micros") long } windowEnd = null;
+}

@@ -7,8 +7,11 @@ import com.pinchez.streams.config.StreamsProperties;
 import com.pinchez.streams.serde.AvroSerdeFactory;
 import com.pinchez.streams.topology.PesaflowTopology;
 import io.confluent.kafka.schemaregistry.testutil.MockSchemaRegistry;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Properties;
 import java.util.UUID;
 import org.apache.avro.specific.SpecificRecord;
@@ -33,7 +36,20 @@ public final class TopologyHarness implements AutoCloseable {
             "merchant-payments",
             "enriched",
             "balances",
-            "transaction-senders");
+            "transaction-senders",
+            "fraud-alerts");
+
+    public static final ZoneId NAIROBI = ZoneId.of("Africa/Nairobi");
+
+    public static final StreamsProperties.Fraud FRAUD = new StreamsProperties.Fraud(
+            NAIROBI,
+            new StreamsProperties.Fraud.TransferVelocity(Duration.ofMinutes(1), Duration.ofSeconds(30), 5),
+            new StreamsProperties.Fraud.RollingSpend(
+                    Duration.ofMinutes(10), Duration.ofMinutes(1), new BigDecimal("0.5")),
+            new StreamsProperties.Fraud.NewAccount(Duration.ofHours(24), new BigDecimal("10000")),
+            new StreamsProperties.Fraud.NightBetting(
+                    LocalTime.MIDNIGHT, LocalTime.of(5, 0), Duration.ofMinutes(10), Duration.ofMinutes(2), 3),
+            new StreamsProperties.Fraud.RoundTrip(Duration.ofMinutes(5), Duration.ofMinutes(1), new BigDecimal("0.1")));
 
     private final String registryScope = "topology-harness-" + UUID.randomUUID();
     private final AvroSerdeFactory serdes = new AvroSerdeFactory("mock://" + registryScope);
@@ -47,7 +63,8 @@ public final class TopologyHarness implements AutoCloseable {
                 "mock://" + registryScope,
                 TOPICS,
                 new StreamsProperties.OutputTopics(1, (short) 1),
-                new StreamsProperties.AccountsTable(versionedAccounts, Duration.ofDays(30)));
+                new StreamsProperties.AccountsTable(versionedAccounts, Duration.ofDays(30)),
+                FRAUD);
         var builder = new StreamsBuilder();
         new PesaflowTopology(properties, serdes).addTo(builder);
 
@@ -101,6 +118,17 @@ public final class TopologyHarness implements AutoCloseable {
 
     public <V> KeyValueStore<String, V> store(String name) {
         return driver.getKeyValueStore(name);
+    }
+
+    public void advanceWallClock(Duration duration) {
+        driver.advanceWallClockTime(duration);
+    }
+
+    public double droppedRecords() {
+        return driver.metrics().entrySet().stream()
+                .filter(metric -> metric.getKey().name().equals("dropped-records-total"))
+                .mapToDouble(metric -> ((Number) metric.getValue().metricValue()).doubleValue())
+                .sum();
     }
 
     @Override

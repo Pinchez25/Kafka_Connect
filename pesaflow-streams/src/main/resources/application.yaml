@@ -33,9 +33,33 @@ pesaflow:
       enriched-transactions: pesaflow.transactions.enriched
       balances: pesaflow.balances
       transaction-senders: pesaflow.transactions.with-sender
+      fraud-alerts: pesaflow.fraud.alerts
     output-topics:
       partitions: 3
       replication-factor: 1
     accounts-table:
       versioned: true
       history-retention: 30d
+    fraud:
+      zone-id: Africa/Nairobi
+      transfer-velocity:
+        window: 1m
+        grace: 30s
+        max-transfers: 5
+      rolling-spend:
+        window: 10m
+        grace: 1m
+        limit-fraction: 0.5
+      new-account:
+        max-age: 24h
+        amount-threshold: 10000
+      night-betting:
+        start: "00:00"
+        end: "05:00"
+        inactivity-gap: 10m
+        grace: 2m
+        min-payments: 3
+      round-trip:
+        window: 5m
+        grace: 1m
+        max-amount-difference: 0.1
