@@ -4,6 +4,7 @@ import com.pinchez.events.AccountProfile;
 import com.pinchez.events.AccountSummary;
 import com.pinchez.events.Balance;
 import com.pinchez.events.EnrichedTransaction;
+import com.pinchez.events.LastActivity;
 import com.pinchez.streams.client.RemoteQueryClient;
 import com.pinchez.streams.dto.AccountActivityResponse;
 import com.pinchez.streams.mapper.QueryResponseMapper;
@@ -77,6 +78,17 @@ class AccountStateController {
                         accountId,
                         EnrichedTransaction.class,
                         QueryResponseMapper::toResponse),
+                request);
+    }
+
+    @GetMapping("/accounts/{accountId}/last-activity")
+    ResponseEntity<?> lastActivity(@PathVariable UUID accountId, HttpServletRequest request) {
+        return respond(
+                queries.<LastActivity, Object>find(
+                        StoreNames.LAST_ACTIVITY,
+                        accountId,
+                        LastActivity.class,
+                        activity -> QueryResponseMapper.toResponse(accountId, activity)),
                 request);
     }
 

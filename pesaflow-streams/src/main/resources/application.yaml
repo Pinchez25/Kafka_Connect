@@ -40,6 +40,7 @@ pesaflow:
       balances: pesaflow.balances
       transaction-senders: pesaflow.transactions.with-sender
       fraud-alerts: pesaflow.fraud.alerts
+      dormant-accounts: pesaflow.accounts.dormant
     output-topics:
       partitions: ${OUTPUT_TOPIC_PARTITIONS:3}
       replication-factor: ${OUTPUT_TOPIC_REPLICATION_FACTOR:1}
@@ -52,6 +53,10 @@ pesaflow:
       retention: 1h
     deduplication:
       retention: ${DEDUPLICATION_RETENTION:7d}
+    dormant-account:
+      inactivity: ${DORMANT_ACCOUNT_INACTIVITY:30d}
+      scan-interval: ${DORMANT_ACCOUNT_SCAN_INTERVAL:1m}
+      punctuation-type: ${DORMANT_ACCOUNT_PUNCTUATION_TYPE:wall-clock-time}
     fraud:
       zone-id: ${FRAUD_ZONE_ID:Africa/Nairobi}
       transfer-velocity:

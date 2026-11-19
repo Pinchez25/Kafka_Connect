@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import org.apache.kafka.streams.processor.PunctuationType;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -22,6 +23,7 @@ public record StreamsProperties(
         @NotNull @Valid AccountsTable accountsTable,
         @NotNull @Valid Activity activity,
         @NotNull @Valid Deduplication deduplication,
+        @NotNull @Valid DormantAccount dormantAccount,
         @NotNull @Valid Fraud fraud) {
 
     public record Topics(
@@ -34,7 +36,8 @@ public record StreamsProperties(
             @NotBlank String enrichedTransactions,
             @NotBlank String balances,
             @NotBlank String transactionSenders,
-            @NotBlank String fraudAlerts) {}
+            @NotBlank String fraudAlerts,
+            @NotBlank String dormantAccounts) {}
 
     public record OutputTopics(
             @Positive int partitions, @Positive short replicationFactor) {}
@@ -53,6 +56,11 @@ public record StreamsProperties(
 
     /** Transaction ids are remembered for {@code retention} of stream time; older duplicates get through. */
     public record Deduplication(@NotNull Duration retention) {}
+
+    public record DormantAccount(
+            @NotNull Duration inactivity,
+            @NotNull Duration scanInterval,
+            @NotNull PunctuationType punctuationType) {}
 
     public record Fraud(
             @NotNull ZoneId zoneId,

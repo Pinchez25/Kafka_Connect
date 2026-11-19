@@ -1,0 +1,18 @@
+namespace com.pinchez.events;
+
+schema DormantAccount;
+
+record LastActivity {
+    uuid lastTransactionId;
+    @logicalType("timestamp-micros") long lastActivityAt;
+    /** Set once a dormancy alert has gone out, so each quiet spell is reported once. */
+    union { null, @logicalType("timestamp-micros") long } reportedDormantAt = null;
+}
+
+record DormantAccount {
+    uuid accountId;
+    @logicalType("timestamp-micros") long lastActivityAt;
+    @logicalType("timestamp-micros") long detectedAt;
+    long inactiveSeconds;
+    union { null, decimal(19, 2) } balance = null;
+}
