@@ -1,5 +1,6 @@
 package com.pinchez.streams.config;
 
+import com.pinchez.streams.handler.RestartLimitingUncaughtExceptionHandler;
 import com.pinchez.streams.serde.AvroSerdeFactory;
 import com.pinchez.streams.topology.PesaflowTopology;
 import java.time.Clock;
@@ -51,6 +52,20 @@ class KafkaStreamsConfiguration {
         });
     }
 
+    /**
+     * Kafka Streams normally stays in the group on close, so a planned stop waits out the session timeout before its
+     * tasks move. With standby replicas a rebalance is cheap, so leaving at once is the better trade.
+     */
+    @Bean
+    StreamsBuilderFactoryBeanConfigurer streamsLifecycle(StreamsProperties properties, Clock clock) {
+        var errors = properties.errors();
+        return factoryBean -> {
+            factoryBean.setLeaveGroupOnClose(true);
+            factoryBean.setStreamsUncaughtExceptionHandler(new RestartLimitingUncaughtExceptionHandler(
+                    errors.maxThreadReplacements(), errors.threadReplacementWindow(), clock));
+        };
+    }
+
     @Bean
     KafkaStreamsInteractiveQueryService interactiveQueryService(StreamsBuilderFactoryBean streamsBuilder) {
         return new KafkaStreamsInteractiveQueryService(streamsBuilder);
@@ -66,7 +81,8 @@ class KafkaStreamsConfiguration {
                         topics.enrichedTransactions(),
                         topics.fraudAlerts(),
                         topics.fraudReview(),
-                        topics.dormantAccounts())
+                        topics.dormantAccounts(),
+                        topics.deadLetters())
                 .map(name -> topic(properties, name).build());
         var tables = Stream.of(topics.balances(), topics.transactionSenders())
                 .map(name -> topic(properties, name)

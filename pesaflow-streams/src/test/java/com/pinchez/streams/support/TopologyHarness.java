@@ -4,6 +4,8 @@ import com.pinchez.cdc.Account;
 import com.pinchez.cdc.Merchant;
 import com.pinchez.cdc.Transaction;
 import com.pinchez.streams.config.StreamsProperties;
+import com.pinchez.streams.handler.BestEffortProcessingExceptionHandler;
+import com.pinchez.streams.handler.CdcDeserializationExceptionHandler;
 import com.pinchez.streams.serde.AvroSerdeFactory;
 import com.pinchez.streams.topology.PesaflowTopology;
 import io.confluent.kafka.schemaregistry.testutil.MockSchemaRegistry;
@@ -15,12 +17,15 @@ import java.time.ZoneId;
 import java.util.Properties;
 import java.util.UUID;
 import org.apache.avro.specific.SpecificRecord;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TestInputTopic;
 import org.apache.kafka.streams.TestOutputTopic;
+import org.apache.kafka.streams.TopologyConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.streams.processor.PunctuationType;
 import org.apache.kafka.streams.state.KeyValueStore;
@@ -41,7 +46,8 @@ public final class TopologyHarness implements AutoCloseable {
             "transaction-senders",
             "fraud-alerts",
             "fraud-review",
-            "dormant-accounts");
+            "dormant-accounts",
+            "streams-dlq");
 
     public static final ZoneId NAIROBI = ZoneId.of("Africa/Nairobi");
 
@@ -78,16 +84,23 @@ public final class TopologyHarness implements AutoCloseable {
                 new StreamsProperties.Activity(Duration.ofMinutes(1), Duration.ofSeconds(30), Duration.ofHours(1)),
                 new StreamsProperties.Deduplication(DEDUPLICATION_RETENTION),
                 new StreamsProperties.DormantAccount(DORMANCY, Duration.ofMinutes(1), dormancyScan),
+                new StreamsProperties.Errors(3, Duration.ofMinutes(10)),
                 FRAUD);
-        var builder = new StreamsBuilder();
-        var pesaflow = new PesaflowTopology(properties, serdes);
-        pesaflow.addTo(builder);
-        var topology = builder.build();
-        pesaflow.addTo(topology);
-
         var config = new Properties();
         config.put(StreamsConfig.APPLICATION_ID_CONFIG, "topology-harness");
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "unused:9092");
+        config.put(StreamsConfig.ENSURE_EXPLICIT_INTERNAL_RESOURCE_NAMING_CONFIG, true);
+        config.put(StreamsConfig.ERRORS_DEAD_LETTER_QUEUE_TOPIC_NAME_CONFIG, TOPICS.deadLetters());
+        config.put(
+                StreamsConfig.DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, CdcDeserializationExceptionHandler.class);
+        config.put(StreamsConfig.PROCESSING_EXCEPTION_HANDLER_CLASS_CONFIG, BestEffortProcessingExceptionHandler.class);
+
+        var builder = new StreamsBuilder(new TopologyConfig(new StreamsConfig(config)));
+        var pesaflow = new PesaflowTopology(properties, serdes);
+        pesaflow.addTo(builder);
+        var topology = builder.build(config);
+        pesaflow.addTo(topology);
+
         driver = new TopologyTestDriver(topology, config, WALL_CLOCK_START);
 
         accounts = input(TOPICS.cdcAccounts());
@@ -126,6 +139,16 @@ public final class TopologyHarness implements AutoCloseable {
     public Transaction pipe(Transaction transaction) {
         transactions.pipeInput(transaction.getId().toString(), transaction, Instant.parse(transaction.getCreatedAt()));
         return transaction;
+    }
+
+    /** Bytes that are not Avro, as a broken producer might write them. */
+    public void pipeRawTransaction(String key, byte[] value) {
+        driver.createInputTopic(TOPICS.cdcTransactions(), new StringSerializer(), new ByteArraySerializer())
+                .pipeInput(key, value, CdcRecords.OPENED_AT);
+    }
+
+    public TestOutputTopic<byte[], byte[]> deadLetters() {
+        return driver.createOutputTopic(TOPICS.deadLetters(), new ByteArrayDeserializer(), new ByteArrayDeserializer());
     }
 
     public void pipeTombstone(String transactionKey) {

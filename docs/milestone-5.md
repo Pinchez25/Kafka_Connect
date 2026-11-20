@@ -185,8 +185,11 @@ time. This processor uses arrival order, so it does.
    then stop the load generator. Nothing more is reported, however long you wait. Restart
    with `wall-clock-time` and do it again.
 3. **Throw in a punctuator.** Add `throw new IllegalStateException()` to
-   `reportDormantAccounts`. Watch the stream thread die, and the client shut down
-   (`SHUTDOWN_CLIENT` is the default). Milestone 7 replaces the thread instead.
+   `reportDormantAccounts`. Punctuator exceptions go to the `processing.exception.handler`.
+   With Milestone 7's `BestEffortProcessingExceptionHandler`, dormancy is best effort, so the
+   scan is logged and skipped. Set the handler to
+   `org.apache.kafka.streams.errors.LogAndFailProcessingExceptionHandler` (the default) and the
+   stream thread dies instead, and is replaced by the uncaught exception handler.
 4. **Remove the ordering pause.** Delete `letHabitArriveFirst()` from `FraudScenarioService`
    and run `unusual-amount` a few times. Count how often the alert is missing. How would
    you make the rule order-insensitive? (Hint: buffer by event time, or key the CDC topic

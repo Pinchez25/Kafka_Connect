@@ -15,10 +15,22 @@ spring:
       properties:
         # Lets every instance tell callers which host owns a key (interactive query routing).
         application.server: ${STREAMS_ADVERTISED_HOST:localhost}:${server.port}
-        # Connect writes with exactly-once transactions; don't read records from aborted ones.
+        processing.guarantee: ${STREAMS_PROCESSING_GUARANTEE:exactly_once_v2}
+        # Connect writes with exactly-once transactions; don't read records from aborted ones (implied by exactly-once).
         consumer.isolation.level: read_committed
         commit.interval.ms: ${STREAMS_COMMIT_INTERVAL_MS:1000}
         statestore.cache.max.bytes: ${STREAMS_CACHE_MAX_BYTES:10485760}
+        num.standby.replicas: ${STREAMS_STANDBY_REPLICAS:1}
+        # A crashed instance's tasks move after this long; the 45 s default dominated failover time.
+        consumer.session.timeout.ms: ${STREAMS_SESSION_TIMEOUT_MS:10000}
+        consumer.heartbeat.interval.ms: 3000
+        ensure.explicit.internal.resource.naming: true
+        # Reusing pesaflow.accounts as the accounts changelog would restore versions with Connect's timestamps, not updated_at.
+        topology.optimization: none
+        errors.dead.letter.queue.topic.name: ${pesaflow.streams.topics.dead-letters}
+        deserialization.exception.handler: com.pinchez.streams.handler.CdcDeserializationExceptionHandler
+        processing.exception.handler: com.pinchez.streams.handler.BestEffortProcessingExceptionHandler
+        production.exception.handler: com.pinchez.streams.handler.OversizedRecordProductionExceptionHandler
 
 management:
   endpoints:
@@ -42,6 +54,7 @@ pesaflow:
       fraud-alerts: pesaflow.fraud.alerts
       fraud-review: pesaflow.fraud.review
       dormant-accounts: pesaflow.accounts.dormant
+      dead-letters: pesaflow.dlq.streams
     output-topics:
       partitions: ${OUTPUT_TOPIC_PARTITIONS:3}
       replication-factor: ${OUTPUT_TOPIC_REPLICATION_FACTOR:1}
@@ -58,6 +71,9 @@ pesaflow:
       inactivity: ${DORMANT_ACCOUNT_INACTIVITY:30d}
       scan-interval: ${DORMANT_ACCOUNT_SCAN_INTERVAL:1m}
       punctuation-type: ${DORMANT_ACCOUNT_PUNCTUATION_TYPE:wall-clock-time}
+    errors:
+      max-thread-replacements: 3
+      thread-replacement-window: 10m
     fraud:
       zone-id: ${FRAUD_ZONE_ID:Africa/Nairobi}
       transfer-velocity:

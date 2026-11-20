@@ -24,6 +24,7 @@ public record StreamsProperties(
         @NotNull @Valid Activity activity,
         @NotNull @Valid Deduplication deduplication,
         @NotNull @Valid DormantAccount dormantAccount,
+        @NotNull @Valid Errors errors,
         @NotNull @Valid Fraud fraud) {
 
     public record Topics(
@@ -38,7 +39,8 @@ public record StreamsProperties(
             @NotBlank String transactionSenders,
             @NotBlank String fraudAlerts,
             @NotBlank String fraudReview,
-            @NotBlank String dormantAccounts) {}
+            @NotBlank String dormantAccounts,
+            @NotBlank String deadLetters) {}
 
     public record OutputTopics(
             @Positive int partitions, @Positive short replicationFactor) {}
@@ -62,6 +64,10 @@ public record StreamsProperties(
             @NotNull Duration inactivity,
             @NotNull Duration scanInterval,
             @NotNull PunctuationType punctuationType) {}
+
+    /** A failed stream thread is replaced at most {@code maxThreadReplacements} times per {@code window}. */
+    public record Errors(
+            @Positive int maxThreadReplacements, @NotNull Duration threadReplacementWindow) {}
 
     public record Fraud(
             @NotNull ZoneId zoneId,
