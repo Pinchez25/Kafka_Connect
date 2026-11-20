@@ -23,7 +23,8 @@ public final class PesaflowTopology {
 
         new TransactionRoutingTopology(topics, serdes).addTo(sources.completedTransactions());
         var enriched = new TransactionEnrichmentTopology(topics, serdes).addTo(sources);
-        var ledger = LedgerTopology.byAccount(sources, serdes);
+        var ledger = LedgerTopology.byAccount(
+                sources, serdes, properties.outputTopics().partitions());
         var balances = new BalanceTopology(topics, serdes).addTo(ledger);
         new DormantAccountTopology(properties.dormantAccount(), topics, serdes).addTo(ledger);
         new AccountInsightsTopology(serdes).addTo(sources, enriched, balances);
