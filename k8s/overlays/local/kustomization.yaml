@@ -1,0 +1,69 @@
+# Single-node development cluster (kind, minikube, k3d): one of everything, replication factor 1,
+# images built locally and loaded into the cluster (see k8s/README.md).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+images:
+  - name: ghcr.io/pinchez25/pesaflow-wallet-api
+    newName: pesaflow/wallet-api
+    newTag: local
+  - name: ghcr.io/pinchez25/pesaflow-streams
+    newName: pesaflow/pesaflow-streams
+    newTag: local
+replicas:
+  - name: wallet-api
+    count: 1
+  - name: pesaflow-streams
+    count: 1
+  - name: schema-registry
+    count: 1
+secretGenerator:
+  - name: pesaflow-debezium
+    namespace: pesaflow
+    type: kubernetes.io/basic-auth
+    literals:
+      - username=debezium
+      - password=debezium-local-only
+    options:
+      disableNameSuffixHash: true
+configMapGenerator:
+  - name: wallet-api
+    namespace: pesaflow
+    behavior: merge
+    literals:
+      - LOAD_GENERATOR_ENABLED=true
+  - name: pesaflow-streams
+    namespace: pesaflow
+    behavior: merge
+    literals:
+      - STREAMS_STANDBY_REPLICAS=0
+      - OUTPUT_TOPIC_REPLICATION_FACTOR=1
+patches:
+  - path: single-node.yaml
+  - target:
+      kind: KafkaTopic
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/config/min.insync.replicas
+        value: "1"
+  - target:
+      kind: KafkaConnector
+      name: pesaflow-(analytics-.*|fraud-webhook)
+    patch: |-
+      - op: replace
+        path: /spec/config/errors.deadletterqueue.topic.replication.factor
+        value: "1"
+  - target:
+      kind: KafkaConnector
+      name: pesaflow-postgres-source
+    patch: |-
+      - op: replace
+        path: /spec/config/topic.creation.default.replication.factor
+        value: "1"
+      - op: replace
+        path: /spec/config/topic.creation.entities.replication.factor
+        value: "1"

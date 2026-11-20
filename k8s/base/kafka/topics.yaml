@@ -1,0 +1,219 @@
+# Every topic the applications and connectors use. Kafka Streams' internal topics are created by Kafka Streams.
+# spec.topicName carries the real name; resource names use dashes for consistency.
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-accounts
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.accounts
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+    cleanup.policy: "compact"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-merchants
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.merchants
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+    cleanup.policy: "compact"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-transactions
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.transactions
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+    retention.ms: "2592000000"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-transactions-p2p
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.transactions.p2p
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-transactions-top-up
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.transactions.top-up
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-transactions-merchant-payment
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.transactions.merchant-payment
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-transactions-enriched
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.transactions.enriched
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-balances
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.balances
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+    cleanup.policy: "compact"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-transactions-with-sender
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.transactions.with-sender
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+    cleanup.policy: "compact"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-fraud-alerts
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.fraud.alerts
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-fraud-review
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.fraud.review
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-accounts-dormant
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.accounts.dormant
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-dlq-streams
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.dlq.streams
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+    retention.ms: "1209600000"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-dlq-analytics-transactions
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.dlq.analytics-transactions
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+    retention.ms: "1209600000"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-dlq-analytics-accounts
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.dlq.analytics-accounts
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+    retention.ms: "1209600000"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pesaflow-dlq-fraud-webhook
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  topicName: pesaflow.dlq.fraud-webhook
+  partitions: 3
+  replicas: 3
+  config:
+    min.insync.replicas: "2"
+    retention.ms: "1209600000"

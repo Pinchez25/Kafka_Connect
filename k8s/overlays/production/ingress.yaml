@@ -1,0 +1,58 @@
+# Only the public API is routed. /actuator, /load-generator and /webhooks (called by the HTTP sink connector inside
+# the cluster) are deliberately absent.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pesaflow
+  namespace: pesaflow
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.pesaflow.example.com
+        - query.pesaflow.example.com
+      secretName: pesaflow-tls
+  rules:
+    - host: api.pesaflow.example.com
+      http:
+        paths:
+          - path: /accounts
+            pathType: Prefix
+            backend:
+              service:
+                name: wallet-api
+                port:
+                  name: http
+          - path: /merchants
+            pathType: Prefix
+            backend:
+              service:
+                name: wallet-api
+                port:
+                  name: http
+          - path: /transactions
+            pathType: Prefix
+            backend:
+              service:
+                name: wallet-api
+                port:
+                  name: http
+    - host: query.pesaflow.example.com
+      http:
+        paths:
+          - path: /balances
+            pathType: Prefix
+            backend:
+              service:
+                name: pesaflow-streams
+                port:
+                  name: http
+          - path: /accounts
+            pathType: Prefix
+            backend:
+              service:
+                name: pesaflow-streams
+                port:
+                  name: http

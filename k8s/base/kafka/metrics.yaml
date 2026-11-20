@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-metrics
+data:
+  kafka-metrics.yaml: |
+    lowercaseOutputName: true
+    rules:
+      - pattern: 'kafka.server<type=(.+), name=(.+), topic=(.+)><>(Count|Value)'
+        name: kafka_server_$1_$2
+        labels:
+          topic: $3
+      - pattern: 'kafka.server<type=(.+), name=(.+)><>(Count|Value)'
+        name: kafka_server_$1_$2
+      - pattern: 'kafka.controller<type=(.+), name=(.+)><>(Count|Value)'
+        name: kafka_controller_$1_$2
+      - pattern: 'kafka.network<type=RequestMetrics, name=(.+), request=(.+)><>(Count|99thPercentile)'
+        name: kafka_network_requestmetrics_$1
+        labels:
+          request: $2
+          quantile: $3
+  # Same rules as connect/metrics.yaml, which the Docker Compose worker uses.
+  connect-metrics.yaml: |
+    lowercaseOutputName: true
+    lowercaseOutputLabelNames: true
+    rules:
+      - pattern: 'kafka.connect<type=connect-worker-metrics><>(connector-count|task-count|connector-startup-failure-total|task-startup-failure-total)'
+        name: kafka_connect_worker_$1
+      - pattern: 'kafka.connect<type=connect-worker-metrics, connector=(.+)><>connector-(running|paused|failed|unassigned|destroyed|restarting)-task-count'
+        name: kafka_connect_connector_tasks
+        labels:
+          connector: $1
+          state: $2
+      - pattern: 'kafka.connect<type=(source|sink)-task-metrics, connector=(.+), task=(.+)><>([^:]+)'
+        name: kafka_connect_$1_task_$4
+        labels:
+          connector: $2
+          task: $3
+      - pattern: 'kafka.connect<type=task-error-metrics, connector=(.+), task=(.+)><>([^:]+)'
+        name: kafka_connect_task_error_$3
+        labels:
+          connector: $1
+          task: $2
+      - pattern: 'kafka.consumer<type=consumer-fetch-manager-metrics, client-id=connector-consumer-(.+)-(\d+)><>records-lag-max'
+        name: kafka_connect_sink_records_lag_max
+        labels:
+          connector: $1
+          task: $2
+      - pattern: 'debezium.([^:]+)<type=connector-metrics, context=([^,]+), server=([^,>]+)(?:, task=([^>]+))?><>(MilliSecondsBehindSource|MilliSecondsSinceLastEvent|TotalNumberOfEventsSeen|QueueRemainingCapacity|Connected):'
+        name: debezium_$1_$2_$5
+        labels:
+          server: $3

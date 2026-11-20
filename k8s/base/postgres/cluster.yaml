@@ -1,0 +1,41 @@
+# CloudNativePG. The operator creates the pesaflow-db-app secret (username, password, jdbc-uri, ...) for the app owner.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pesaflow-db
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+  primaryUpdateStrategy: unsupervised
+  postgresql:
+    parameters:
+      # Debezium reads the write-ahead log through a logical replication slot.
+      wal_level: logical
+      max_replication_slots: "10"
+      max_wal_senders: "10"
+      max_slot_wal_keep_size: 10GB
+  bootstrap:
+    initdb:
+      database: pesaflow
+      owner: pesaflow
+      postInitApplicationSQL:
+        # Flyway (as pesaflow) creates the tables later; Debezium only needs to read them.
+        - ALTER DEFAULT PRIVILEGES FOR ROLE pesaflow IN SCHEMA public GRANT SELECT ON TABLES TO debezium
+  managed:
+    roles:
+      - name: debezium
+        ensure: present
+        login: true
+        replication: true
+        passwordSecret:
+          name: pesaflow-debezium
+  storage:
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      memory: 1Gi
+  monitoring:
+    enablePodMonitor: false

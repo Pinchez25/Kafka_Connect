@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - wallet-api-hpa.yaml
+  - ingress.yaml
+components:
+  - ../../components/monitoring
+# CI sets these to the commit's image tag: kustomize edit set image ghcr.io/pinchez25/pesaflow-wallet-api:sha-<sha>
+images:
+  - name: ghcr.io/pinchez25/pesaflow-wallet-api
+    newTag: latest
+  - name: ghcr.io/pinchez25/pesaflow-streams
+    newTag: latest
+replicas:
+  - name: wallet-api
+    count: 3
+# Secrets are not kept in git. Provide them before applying, e.g. with External Secrets or Sealed Secrets:
+#   pesaflow-debezium  (kubernetes.io/basic-auth: username=debezium, password)
+#   ghcr-push          (kubernetes.io/dockerconfigjson, for the Connect image build)

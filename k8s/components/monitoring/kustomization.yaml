@@ -1,0 +1,5 @@
+# Optional: scrape configuration for the Prometheus Operator (kube-prometheus-stack).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - pod-monitors.yaml

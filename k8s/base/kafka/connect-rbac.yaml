@@ -1,0 +1,23 @@
+# Lets the Connect workers (service account pesaflow-connect, created by Strimzi) read only the secrets they reference.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pesaflow-connect-secrets
+rules:
+  - apiGroups: [ "" ]
+    resources: [ secrets ]
+    resourceNames: [ pesaflow-debezium, pesaflow-db-app ]
+    verbs: [ get ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pesaflow-connect-secrets
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pesaflow-connect-secrets
+subjects:
+  - kind: ServiceAccount
+    name: pesaflow-connect-connect
+    namespace: pesaflow

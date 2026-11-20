@@ -1,0 +1,194 @@
+# Same configuration as connect/connectors/pesaflow-postgres-source.json, pointed at the cluster's services.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: pesaflow-postgres-source
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    exactly.once.support: "required"
+    database.hostname: "pesaflow-db-rw"
+    database.port: "5432"
+    database.user: "debezium"
+    database.password: "${secrets:pesaflow/pesaflow-debezium:password}"
+    database.dbname: "pesaflow"
+    topic.prefix: "pesaflow"
+    plugin.name: "pgoutput"
+    slot.name: "pesaflow_source"
+    publication.name: "pesaflow_cdc"
+    publication.autocreate.mode: "disabled"
+    table.include.list: "public\\.(accounts|merchants|transactions|debezium_signals)"
+    snapshot.mode: "initial"
+    heartbeat.interval.ms: "10000"
+    signal.enabled.channels: "source"
+    signal.data.collection: "public.debezium_signals"
+    column.mask.hash.v2.SHA-256.with.salt.pesaflow-cdc: "public.accounts.phone_number"
+    key.converter: "org.apache.kafka.connect.storage.StringConverter"
+    value.converter: "io.confluent.connect.avro.AvroConverter"
+    value.converter.schema.registry.url: "http://schema-registry:8081"
+    topic.creation.groups: "entities"
+    topic.creation.default.partitions: "3"
+    topic.creation.default.replication.factor: "3"
+    topic.creation.entities.include: "pesaflow\\.(accounts|merchants)"
+    topic.creation.entities.partitions: "3"
+    topic.creation.entities.replication.factor: "3"
+    topic.creation.entities.cleanup.policy: "compact"
+    transforms: "unwrap,route,dropSignals,extractKey,nameAccount,nameMerchant,nameTransaction"
+    transforms.unwrap.type: "io.debezium.transforms.ExtractNewRecordState"
+    transforms.unwrap.delete.tombstone.handling.mode: "tombstone"
+    transforms.unwrap.add.fields: "op,source.ts_ms"
+    transforms.unwrap.add.headers: "op,source.lsn"
+    transforms.route.type: "org.apache.kafka.connect.transforms.RegexRouter"
+    transforms.route.regex: "pesaflow\\.public\\.(.*)"
+    transforms.route.replacement: "pesaflow.$1"
+    transforms.dropSignals.type: "org.apache.kafka.connect.transforms.Filter"
+    transforms.dropSignals.predicate: "isSignalTopic"
+    transforms.extractKey.type: "org.apache.kafka.connect.transforms.ExtractField$Key"
+    transforms.extractKey.field: "id"
+    transforms.extractKey.predicate: "isTableTopic"
+    transforms.nameAccount.type: "org.apache.kafka.connect.transforms.SetSchemaMetadata$Value"
+    transforms.nameAccount.schema.name: "com.pinchez.cdc.Account"
+    transforms.nameAccount.predicate: "isAccountsTopic"
+    transforms.nameMerchant.type: "org.apache.kafka.connect.transforms.SetSchemaMetadata$Value"
+    transforms.nameMerchant.schema.name: "com.pinchez.cdc.Merchant"
+    transforms.nameMerchant.predicate: "isMerchantsTopic"
+    transforms.nameTransaction.type: "org.apache.kafka.connect.transforms.SetSchemaMetadata$Value"
+    transforms.nameTransaction.schema.name: "com.pinchez.cdc.Transaction"
+    transforms.nameTransaction.predicate: "isTransactionsTopic"
+    predicates: "isSignalTopic,isTableTopic,isAccountsTopic,isMerchantsTopic,isTransactionsTopic"
+    predicates.isSignalTopic.type: "org.apache.kafka.connect.transforms.predicates.TopicNameMatches"
+    predicates.isSignalTopic.pattern: "pesaflow\\.debezium_signals"
+    predicates.isTableTopic.type: "org.apache.kafka.connect.transforms.predicates.TopicNameMatches"
+    predicates.isTableTopic.pattern: "pesaflow\\.(accounts|merchants|transactions)"
+    predicates.isAccountsTopic.type: "org.apache.kafka.connect.transforms.predicates.TopicNameMatches"
+    predicates.isAccountsTopic.pattern: "pesaflow\\.accounts"
+    predicates.isMerchantsTopic.type: "org.apache.kafka.connect.transforms.predicates.TopicNameMatches"
+    predicates.isMerchantsTopic.pattern: "pesaflow\\.merchants"
+    predicates.isTransactionsTopic.type: "org.apache.kafka.connect.transforms.predicates.TopicNameMatches"
+    predicates.isTransactionsTopic.pattern: "pesaflow\\.transactions"
+---
+# See connect/connectors/pesaflow-analytics-transactions.json.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: pesaflow-analytics-transactions
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  class: io.debezium.connector.jdbc.JdbcSinkConnector
+  tasksMax: 3
+  config:
+    topics: "pesaflow.transactions.enriched"
+    consumer.override.isolation.level: "read_committed"
+    connection.url: "jdbc:postgresql://pesaflow-db-rw:5432/pesaflow"
+    connection.username: "${secrets:pesaflow/pesaflow-db-app:username}"
+    connection.password: "${secrets:pesaflow/pesaflow-db-app:password}"
+    insert.mode: "upsert"
+    primary.key.mode: "record_value"
+    primary.key.fields: "transaction_id"
+    schema.evolution: "basic"
+    collection.name.format: "analytics.transactions"
+    key.converter: "org.apache.kafka.connect.storage.StringConverter"
+    value.converter: "io.confluent.connect.avro.AvroConverter"
+    value.converter.schema.registry.url: "http://schema-registry:8081"
+    transforms: "dropCdcHeaders,snakeCase,occurredAt"
+    transforms.dropCdcHeaders.type: "org.apache.kafka.connect.transforms.DropHeaders"
+    transforms.dropCdcHeaders.headers: "__op,__source_lsn"
+    transforms.snakeCase.type: "org.apache.kafka.connect.transforms.ReplaceField$Value"
+    transforms.snakeCase.renames: "transactionId:transaction_id,accountId:account_id,counterpartyAccountId:counterparty_account_id,occurredAt:occurred_at,kycLevel:kyc_level,accountStatus:account_status,accountAgeSeconds:account_age_seconds,merchantId:merchant_id,merchantCategory:merchant_category"
+    transforms.occurredAt.type: "org.apache.kafka.connect.transforms.TimestampConverter$Value"
+    transforms.occurredAt.field: "occurred_at"
+    transforms.occurredAt.target.type: "Timestamp"
+    transforms.occurredAt.unix.precision: "microseconds"
+    errors.tolerance: "all"
+    errors.log.enable: "true"
+    errors.deadletterqueue.topic.name: "pesaflow.dlq.analytics-transactions"
+    errors.deadletterqueue.topic.replication.factor: "3"
+    errors.deadletterqueue.context.headers.enable: "true"
+---
+# See connect/connectors/pesaflow-analytics-accounts.json.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: pesaflow-analytics-accounts
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  class: io.debezium.connector.jdbc.JdbcSinkConnector
+  tasksMax: 3
+  config:
+    topics: "pesaflow.accounts,pesaflow.balances"
+    consumer.override.isolation.level: "read_committed"
+    connection.url: "jdbc:postgresql://pesaflow-db-rw:5432/pesaflow"
+    connection.username: "${secrets:pesaflow/pesaflow-db-app:username}"
+    connection.password: "${secrets:pesaflow/pesaflow-db-app:password}"
+    insert.mode: "upsert"
+    delete.enabled: "true"
+    primary.key.mode: "record_key"
+    primary.key.fields: "account_id"
+    schema.evolution: "basic"
+    collection.name.format: "analytics.${topic}"
+    key.converter: "org.apache.kafka.connect.storage.StringConverter"
+    value.converter: "io.confluent.connect.avro.AvroConverter"
+    value.converter.schema.registry.url: "http://schema-registry:8081"
+    transforms: "dropCdcHeaders,keyStruct,accountColumns,balanceColumns,balanceUpdatedAt,route"
+    transforms.dropCdcHeaders.type: "org.apache.kafka.connect.transforms.DropHeaders"
+    transforms.dropCdcHeaders.headers: "__op,__source_lsn"
+    transforms.keyStruct.type: "org.apache.kafka.connect.transforms.HoistField$Key"
+    transforms.keyStruct.field: "account_id"
+    transforms.accountColumns.type: "org.apache.kafka.connect.transforms.ReplaceField$Value"
+    transforms.accountColumns.exclude: "id,__op,__source_ts_ms"
+    transforms.accountColumns.predicate: "isAccounts"
+    transforms.balanceColumns.type: "org.apache.kafka.connect.transforms.ReplaceField$Value"
+    transforms.balanceColumns.renames: "entryCount:entry_count,lastTransactionId:last_transaction_id,updatedAt:updated_at"
+    transforms.balanceColumns.predicate: "isBalances"
+    transforms.balanceUpdatedAt.type: "org.apache.kafka.connect.transforms.TimestampConverter$Value"
+    transforms.balanceUpdatedAt.field: "updated_at"
+    transforms.balanceUpdatedAt.target.type: "Timestamp"
+    transforms.balanceUpdatedAt.unix.precision: "microseconds"
+    transforms.balanceUpdatedAt.predicate: "isBalances"
+    transforms.route.type: "org.apache.kafka.connect.transforms.RegexRouter"
+    transforms.route.regex: "pesaflow\\.(.*)"
+    transforms.route.replacement: "$1"
+    predicates: "isAccounts,isBalances"
+    predicates.isAccounts.type: "org.apache.kafka.connect.transforms.predicates.TopicNameMatches"
+    predicates.isAccounts.pattern: "pesaflow\\.accounts"
+    predicates.isBalances.type: "org.apache.kafka.connect.transforms.predicates.TopicNameMatches"
+    predicates.isBalances.pattern: "pesaflow\\.balances"
+    errors.tolerance: "all"
+    errors.log.enable: "true"
+    errors.deadletterqueue.topic.name: "pesaflow.dlq.analytics-accounts"
+    errors.deadletterqueue.topic.replication.factor: "3"
+    errors.deadletterqueue.context.headers.enable: "true"
+---
+# See connect/connectors/pesaflow-fraud-webhook.json.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: pesaflow-fraud-webhook
+  labels:
+    strimzi.io/cluster: pesaflow
+spec:
+  class: io.aiven.kafka.connect.http.HttpSinkConnector
+  tasksMax: 1
+  config:
+    topics: "pesaflow.fraud.alerts"
+    consumer.override.isolation.level: "read_committed"
+    http.url: "http://wallet-api.pesaflow.svc.cluster.local/webhooks/fraud-alerts"
+    http.authorization.type: "none"
+    http.headers.content.type: "application/json"
+    decimal.format: "NUMERIC"
+    max.retries: "48"
+    retry.backoff.ms: "5000"
+    consumer.override.auto.offset.reset: "latest"
+    key.converter: "org.apache.kafka.connect.storage.StringConverter"
+    value.converter: "io.confluent.connect.avro.AvroConverter"
+    value.converter.schema.registry.url: "http://schema-registry:8081"
+    errors.tolerance: "all"
+    errors.log.enable: "true"
+    errors.deadletterqueue.topic.name: "pesaflow.dlq.fraud-webhook"
+    errors.deadletterqueue.topic.replication.factor: "3"
+    errors.deadletterqueue.context.headers.enable: "true"

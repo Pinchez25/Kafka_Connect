@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: pesaflow
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: pesaflow
+    includeSelectors: false
+    includeTemplates: true
+resources:
+  - namespace.yaml
+  - postgres
+  - kafka/kafka.yaml
+  - kafka/metrics.yaml
+  - kafka/topics.yaml
+  - kafka/connect.yaml
+  - kafka/connect-rbac.yaml
+  - kafka/connectors.yaml
+  - schema-registry/schema-registry.yaml
+  - wallet-api/wallet-api.yaml
+  - pesaflow-streams/pesaflow-streams.yaml
+  - network-policies.yaml
+images:
+  - name: ghcr.io/pinchez25/pesaflow-wallet-api
+    newTag: latest
+  - name: ghcr.io/pinchez25/pesaflow-streams
+    newTag: latest

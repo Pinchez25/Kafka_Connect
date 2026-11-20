@@ -1,0 +1,180 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pesaflow-streams
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pesaflow-streams
+data:
+  SERVER_PORT: "8082"
+  KAFKA_BOOTSTRAP_SERVERS: pesaflow-kafka-bootstrap:9092
+  SCHEMA_REGISTRY_URL: http://schema-registry:8081
+  STREAMS_STATE_DIR: /var/lib/pesaflow/streams
+  STREAMS_PROCESSING_GUARANTEE: exactly_once_v2
+  STREAMS_STANDBY_REPLICAS: "1"
+  OUTPUT_TOPIC_PARTITIONS: "3"
+  OUTPUT_TOPIC_REPLICATION_FACTOR: "3"
+  # RocksDB state stores live off-heap, so the heap gets a smaller share of the container's memory than usual.
+  JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=50 -XX:+ExitOnOutOfMemoryError
+---
+# Gives every pod a stable DNS name, which it advertises as application.server for interactive-query forwarding.
+# Not-ready pods are published too: an instance restoring state can still be asked who owns a key.
+apiVersion: v1
+kind: Service
+metadata:
+  name: pesaflow-streams-headless
+  labels:
+    app.kubernetes.io/name: pesaflow-streams
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: pesaflow-streams
+  ports:
+    - name: http
+      port: 8082
+      targetPort: http
+---
+# For clients: any ready instance answers, forwarding to the owner of the key if needed.
+apiVersion: v1
+kind: Service
+metadata:
+  name: pesaflow-streams
+  labels:
+    app.kubernetes.io/name: pesaflow-streams
+spec:
+  selector:
+    app.kubernetes.io/name: pesaflow-streams
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+# A StatefulSet so each instance keeps its RocksDB state on its own volume across restarts and reschedules,
+# instead of restoring every store from the changelog topics.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pesaflow-streams
+  labels:
+    app.kubernetes.io/name: pesaflow-streams
+spec:
+  serviceName: pesaflow-streams-headless
+  replicas: 3
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pesaflow-streams
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pesaflow-streams
+    spec:
+      serviceAccountName: pesaflow-streams
+      # Leaves time to commit the open transaction and leave the consumer group cleanly.
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: pesaflow-streams
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: pesaflow-streams
+      containers:
+        - name: pesaflow-streams
+          image: ghcr.io/pinchez25/pesaflow-streams:latest
+          ports:
+            - name: http
+              containerPort: 8082
+          envFrom:
+            - configMapRef:
+                name: pesaflow-streams
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: STREAMS_ADVERTISED_HOST
+              value: $(POD_NAME).pesaflow-streams-headless.$(POD_NAMESPACE).svc.cluster.local
+          # Restoring state after a crash can take minutes; liveness must not count that as being stuck.
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 36
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          # Ready only when Kafka Streams is RUNNING (KafkaStreamsHealthIndicator).
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 2
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1536Mi
+            limits:
+              memory: 1536Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ ALL ]
+          volumeMounts:
+            - name: state
+              mountPath: /var/lib/pesaflow
+            # RocksDB extracts its native library here.
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: state
+      spec:
+        accessModes: [ ReadWriteOnce ]
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pesaflow-streams
+spec:
+  # With one standby per task, losing one instance at a time keeps every store available.
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pesaflow-streams
