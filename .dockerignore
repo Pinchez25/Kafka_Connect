@@ -1,0 +1,14 @@
+**/build
+**/.gradle
+.git
+.github
+.idea
+*.iml
+**/out
+docs
+http
+k8s
+observability
+connect
+pesaflow-e2e/src
+*.md

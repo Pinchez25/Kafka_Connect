@@ -167,6 +167,50 @@ services:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
 
+  wallet-api:
+    build:
+      context: .
+      args:
+        MODULE: wallet-api
+        PORT: 8080
+    image: pesaflow/wallet-api:local
+    profiles: [ apps ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/pesaflow
+      DB_USERNAME: pesaflow
+      DB_PASSWORD: pesaflow
+      LOAD_GENERATOR_ENABLED: "false"
+
+  pesaflow-streams:
+    build:
+      context: .
+      args:
+        MODULE: pesaflow-streams
+        PORT: 8082
+    image: pesaflow/pesaflow-streams:local
+    profiles: [ apps ]
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      STREAMS_ADVERTISED_HOST: pesaflow-streams
+      STREAMS_STATE_DIR: /var/lib/pesaflow/streams
+      STREAMS_STANDBY_REPLICAS: "0"
+    volumes:
+      - streams-state:/var/lib/pesaflow
+
 volumes:
   kafka-data:
   postgres-data:
+  streams-state:
