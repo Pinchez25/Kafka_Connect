@@ -20,7 +20,17 @@ RUN wget -q -O /tmp/http-sink.tar \
     && tar -xf /tmp/http-sink.tar -C /tmp \
     && mv "/tmp/http-connector-for-apache-kafka-${HTTP_SINK_VERSION}" /http-sink
 
+FROM alpine:3.22 AS jmx-exporter
+
+ARG JMX_EXPORTER_VERSION=1.3.0
+ARG JMX_EXPORTER_SHA256=ba74aad73934e59f4ca9c0779b49f1663c1fc7a81d5d99fc665bd5e5039310f5
+
+RUN wget -q -O /jmx_prometheus_javaagent.jar \
+        "https://github.com/prometheus/jmx_exporter/releases/download/${JMX_EXPORTER_VERSION}/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar" \
+    && echo "${JMX_EXPORTER_SHA256}  /jmx_prometheus_javaagent.jar" | sha256sum -c -
+
 FROM quay.io/debezium/connect:3.6.1.Final
 
 COPY --from=avro-converter /avro-converter /kafka/connect/confluent-avro-converter
 COPY --from=http-sink /http-sink /kafka/connect/aiven-http-sink
+COPY --from=jmx-exporter /jmx_prometheus_javaagent.jar /kafka/libs/jmx_prometheus_javaagent-1.3.0.jar

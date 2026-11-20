@@ -32,3 +32,9 @@ GET http://localhost:8082/accounts/{{account}}/last-activity
 
 ### Duplicate CDC rows dropped by the deduplication processor (custom metric)
 GET http://localhost:8082/actuator/metrics/kafka.stream.pesaflow.deduplication.duplicates.dropped.total
+
+### Prometheus scrape endpoint (all Kafka Streams, consumer and producer metrics)
+GET http://localhost:8082/actuator/prometheus
+
+### Records skipped by the deserialization and processing handlers end up here; this shows the dead-letter topic's metrics
+GET http://localhost:8082/actuator/metrics/kafka.producer.record.send.total

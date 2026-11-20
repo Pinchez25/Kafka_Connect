@@ -72,6 +72,9 @@ services:
       - "8083:8083"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Bind-mounted: /kafka/config is a volume the image only fills when files are missing.
+    volumes:
+      - ./connect/metrics.yaml:/kafka/config/metrics.yaml:ro
     environment: &connect-environment
       BOOTSTRAP_SERVERS: kafka:29092
       GROUP_ID: pesaflow-connect
@@ -86,6 +89,7 @@ services:
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_EXACTLY_ONCE_SOURCE_SUPPORT: enabled
       CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY: All
+      ENABLE_JMX_EXPORTER: "true"
       CONNECT_CONFIG_PROVIDERS: env
       CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
       PESAFLOW_DB_PASSWORD: pesaflow
@@ -137,6 +141,31 @@ services:
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: connect
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://connect:8083
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: [ observability ]
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    profiles: [ observability ]
+    depends_on:
+      - prometheus
+    ports:
+      - "3001:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
 
 volumes:
   kafka-data:
