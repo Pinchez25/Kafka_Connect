@@ -1,5 +1,7 @@
 FROM alpine:3.22 AS avro-converter
 
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+
 ARG AVRO_CONVERTER_VERSION=8.2.0
 ARG AVRO_CONVERTER_SHA256=7c05f4fb33e00be5cd4bc3ae042a8fd890ef7ecc02d82e13ed294fceb6a61a15
 
@@ -11,6 +13,8 @@ RUN wget -q -O /tmp/converter.zip \
 
 FROM alpine:3.22 AS http-sink
 
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+
 ARG HTTP_SINK_VERSION=0.9.0
 ARG HTTP_SINK_SHA256=72fea14ea3c58a5c9d08e08c5dae2404cb5b04a8f73206c5d717d97e13fbbf07
 
@@ -21,6 +25,8 @@ RUN wget -q -O /tmp/http-sink.tar \
     && mv "/tmp/http-connector-for-apache-kafka-${HTTP_SINK_VERSION}" /http-sink
 
 FROM alpine:3.22 AS jmx-exporter
+
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 ARG JMX_EXPORTER_VERSION=1.3.0
 ARG JMX_EXPORTER_SHA256=ba74aad73934e59f4ca9c0779b49f1663c1fc7a81d5d99fc665bd5e5039310f5
