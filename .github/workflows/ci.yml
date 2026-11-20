@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pre-commit:
+    name: Pre-commit hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: pre-commit/action@v3.0.1
+
+  commit-messages:
+    name: Commit messages
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 'Every commit subject is type(scope): subject'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          bad=$(git log --format=%s "$BASE..$HEAD" \
+            | grep -Ev '^((feat|fix|docs|test|refactor|perf|build|ci|chore|style|revert)\([a-z0-9-]+\): |Merge |Revert ")' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::These commit subjects do not follow type(scope): subject"
+            echo "$bad"
+            exit 1
+          fi
+
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@v4
+      # Unit tests, TopologyTestDriver tests and Testcontainers integration tests; spotlessCheck runs as part of check.
+      - run: ./gradlew build --continue
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: "**/build/reports/tests/"
+          retention-days: 7
+
+  kubernetes:
+    name: Kubernetes manifests
+    runs-on: ubuntu-latest
+    env:
+      KUSTOMIZE_IMAGE: registry.k8s.io/kustomize/kustomize:v5.4.3
+      KUBECONFORM_IMAGE: ghcr.io/yannh/kubeconform:v0.6.7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render and validate each overlay
+        run: |
+          for overlay in local production; do
+            echo "::group::$overlay"
+            docker run --rm -v "$PWD/k8s:/k8s:ro" "$KUSTOMIZE_IMAGE" build "/k8s/overlays/$overlay" > "$overlay.yaml"
+            docker run --rm -v "$PWD:/w:ro" "$KUBECONFORM_IMAGE" \
+              -strict -summary -kubernetes-version 1.33.0 \
+              -schema-location default \
+              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+              "/w/$overlay.yaml"
+            echo "::endgroup::"
+          done
