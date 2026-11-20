@@ -2,6 +2,7 @@
   "connector.class": "io.aiven.kafka.connect.http.HttpSinkConnector",
   "tasks.max": "1",
   "topics": "pesaflow.fraud.alerts",
+  "consumer.override.isolation.level": "read_committed",
   "http.url": "http://host.docker.internal:8080/webhooks/fraud-alerts",
   "http.authorization.type": "none",
   "http.headers.content.type": "application/json",
