@@ -39,6 +39,9 @@ Postgres, and the fraud alerts go to a webhook that freezes the account, closing
 | `pesaflow-e2e/` | End-to-end test of the whole pipeline against real containers |
 | `connect/` | Connect image (`Dockerfile`), connector configs, `connect.sh`, JMX exporter rules |
 | `observability/` | Prometheus config and the provisioned Grafana dashboard |
+| `Dockerfile` | One layered, non-root image per application (`--build-arg MODULE=...`) |
+| `k8s/` | Kustomize manifests: Strimzi, CloudNativePG, Schema Registry, both apps ([guide](k8s/README.md)) |
+| `.github/` | CI, image publishing, nightly end-to-end run, Dependabot |
 | `docs/` | One guide per milestone, with experiments |
 | `http/` | Ready-made requests for both apps (IntelliJ HTTP client) |
 
@@ -67,6 +70,36 @@ Open Kafka UI at http://localhost:8090 to browse topics, with Avro decoded.
 
 To start over at any time, run `docker compose down -v`, then delete
 `pesaflow-streams/build/kafka-streams`. The local Streams state belongs to the old cluster.
+
+### Everything in containers
+
+The applications can run as containers too, instead of with `bootRun`:
+
+```bash
+docker compose --profile apps up -d --build      # adds wallet-api and pesaflow-streams to the stack
+./connect/connect.sh apply
+```
+
+The image is built from the repository root, once per module:
+
+```bash
+docker build --build-arg MODULE=wallet-api -t pesaflow/wallet-api .
+docker build --build-arg MODULE=pesaflow-streams --build-arg PORT=8082 -t pesaflow/pesaflow-streams .
+```
+
+It's a multi-stage build: Gradle builds the boot jar, which is then extracted into layers
+(dependencies, loader, snapshots, application). A code change only rebuilds the last layer. The
+image runs as uid 10001 on a glibc base, because RocksDB's native library needs glibc.
+
+### Kubernetes
+
+`k8s/` deploys the whole platform with Kustomize, using Strimzi for Kafka and Connect and
+CloudNativePG for Postgres. It has `local` and `production` overlays. See
+[k8s/README.md](k8s/README.md).
+
+```bash
+kubectl apply -k k8s/overlays/local
+```
 
 ## Ports
 
@@ -107,6 +140,27 @@ with experiments and a checklist.
 
 The end-to-end test starts five containers and both applications. Stop the Compose stack
 before running it on a machine with limited memory.
+
+## Development workflow
+
+```bash
+uvx pre-commit install          # or: pipx install pre-commit && pre-commit install
+```
+
+[pre-commit](https://pre-commit.com) runs on every commit:
+- **Whitespace and syntax:** whitespace fixers, YAML and JSON syntax checks
+- **Leaks:** private keys and secrets (gitleaks)
+- **Linters:** shellcheck, hadolint and actionlint
+- **Formatting:** Spotless
+- **Commit messages:** the `type(scope): subject` format, checked in the commit-msg hook
+
+GitHub Actions:
+
+| Workflow | Runs | Does |
+|----------|------|------|
+| `ci.yml` | pushes and pull requests | pre-commit, commit message format (PRs), `./gradlew build`, `kustomize build` + `kubeconform` for both overlays |
+| `images.yml` | pushes to `main`, tags `v*`, and PRs that touch the images | builds the app and Connect images; pushes them to GHCR (`sha-…`, branch, semver, `latest`), except on PRs |
+| `e2e.yml` | pushes to `main`, nightly, manual | the end-to-end test, uploading app and Connect logs |
 
 ## Configuration
 
