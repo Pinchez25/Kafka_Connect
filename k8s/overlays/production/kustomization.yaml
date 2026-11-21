@@ -6,7 +6,7 @@ resources:
   - ingress.yaml
 components:
   - ../../components/monitoring
-# CI sets these to the commit's image tag: kustomize edit set image ghcr.io/pinchez25/pesaflow-wallet-api:sha-<sha>
+# CI sets these to the commit's image tag: kustomize edit set image ghcr.io/pinchez25/pesaflow-wallet-api:<sha>
 images:
   - name: ghcr.io/pinchez25/pesaflow-wallet-api
     newTag: latest

@@ -61,7 +61,7 @@ Create the secrets first. They are not kept in git:
 
 ```bash
 cd k8s/overlays/production
-kustomize edit set image ghcr.io/pinchez25/pesaflow-wallet-api:sha-<commit> ghcr.io/pinchez25/pesaflow-streams:sha-<commit>
+kustomize edit set image ghcr.io/pinchez25/pesaflow-wallet-api:<commit> ghcr.io/pinchez25/pesaflow-streams:<commit>
 kubectl apply -k .
 ```
 
