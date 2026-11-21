@@ -14,12 +14,14 @@ COPY common-web/build.gradle.kts common-web/
 COPY wallet-api/build.gradle.kts wallet-api/
 COPY pesaflow-streams/build.gradle.kts pesaflow-streams/
 COPY pesaflow-e2e/build.gradle.kts pesaflow-e2e/
-RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon --quiet help
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew --no-daemon --console=plain --info help
 COPY common-web common-web
 COPY wallet-api wallet-api
 COPY pesaflow-streams pesaflow-streams
 ARG MODULE
-RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon --quiet ":${MODULE}:bootJar" \
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew --no-daemon --console=plain --info ":${MODULE}:bootJar" \
     && find "${MODULE}/build/libs" -name '*.jar' ! -name '*-plain.jar' -exec cp {} /workspace/app.jar \;
 
 FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jre-noble AS layers
