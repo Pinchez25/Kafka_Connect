@@ -143,7 +143,7 @@ services:
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://connect:8083
 
   prometheus:
-    image: prom/prometheus:v3.5.0
+    image: prom/prometheus:v3.16.0
     profiles: [ observability ]
     ports:
       - "9090:9090"
