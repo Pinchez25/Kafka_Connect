@@ -35,7 +35,7 @@ RUN wget -q -O /jmx_prometheus_javaagent.jar \
         "https://github.com/prometheus/jmx_exporter/releases/download/${JMX_EXPORTER_VERSION}/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar" \
     && echo "${JMX_EXPORTER_SHA256}  /jmx_prometheus_javaagent.jar" | sha256sum -c -
 
-FROM quay.io/debezium/connect:3.6.1.Final
+FROM quay.io/debezium/connect:3.7.1.Final
 
 COPY --from=avro-converter /avro-converter /kafka/connect/confluent-avro-converter
 COPY --from=http-sink /http-sink /kafka/connect/aiven-http-sink
