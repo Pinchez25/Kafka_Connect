@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags: [ "v*" ]
   pull_request:
 
 permissions:
@@ -17,12 +18,12 @@ jobs:
     name: Pre-commit hooks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
@@ -33,7 +34,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: 'Every commit subject is type(scope): subject'
@@ -53,12 +54,12 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       # Unit tests, TopologyTestDriver tests and Testcontainers integration tests; spotlessCheck runs as part of check.
       - run: ./gradlew build --continue
       - name: Upload test reports
@@ -76,7 +77,7 @@ jobs:
       KUSTOMIZE_IMAGE: registry.k8s.io/kustomize/kustomize:v5.4.3
       KUBECONFORM_IMAGE: ghcr.io/yannh/kubeconform:v0.6.7
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Render and validate each overlay
         run: |
           for overlay in local production; do
@@ -89,3 +90,24 @@ jobs:
               "/w/$overlay.yaml"
             echo "::endgroup::"
           done
+
+  # A release image must have passed the whole pipeline. On main, e2e.yml runs alongside instead and is not waited on.
+  e2e:
+    name: End-to-end
+    if: startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/e2e.yml
+
+  # Every check runs in parallel; only publishing waits, so a commit that fails its own checks never becomes an image.
+  images:
+    name: Images
+    needs: [ pre-commit, build, kubernetes, e2e ]
+    if: >-
+      !cancelled() && github.event_name == 'push'
+      && needs.pre-commit.result == 'success'
+      && needs.build.result == 'success'
+      && needs.kubernetes.result == 'success'
+      && (needs.e2e.result == 'success' || (needs.e2e.result == 'skipped' && !startsWith(github.ref, 'refs/tags/')))
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/images.yml
