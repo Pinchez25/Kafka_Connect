@@ -30,7 +30,7 @@ jobs:
       - run: ./gradlew :pesaflow-e2e:e2eTest
       - name: Upload application and Connect logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-logs
           path: |
