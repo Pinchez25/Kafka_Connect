@@ -1,4 +1,4 @@
-FROM alpine:3.22 AS avro-converter
+FROM --platform=$BUILDPLATFORM alpine:3.22 AS avro-converter
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
@@ -11,7 +11,7 @@ RUN wget -q -O /tmp/converter.zip \
     && unzip -q /tmp/converter.zip -d /tmp \
     && mv "/tmp/confluentinc-kafka-connect-avro-converter-${AVRO_CONVERTER_VERSION}/lib" /avro-converter
 
-FROM alpine:3.22 AS http-sink
+FROM --platform=$BUILDPLATFORM alpine:3.22 AS http-sink
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
@@ -24,7 +24,7 @@ RUN wget -q -O /tmp/http-sink.tar \
     && tar -xf /tmp/http-sink.tar -C /tmp \
     && mv "/tmp/http-connector-for-apache-kafka-${HTTP_SINK_VERSION}" /http-sink
 
-FROM alpine:3.22 AS jmx-exporter
+FROM --platform=$BUILDPLATFORM alpine:3.22 AS jmx-exporter
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
