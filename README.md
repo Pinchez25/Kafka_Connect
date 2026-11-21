@@ -89,7 +89,9 @@ docker build --build-arg MODULE=pesaflow-streams --build-arg PORT=8082 -t pesafl
 
 It's a multi-stage build: Gradle builds the boot jar, which is then extracted into layers
 (dependencies, loader, snapshots, application). A code change only rebuilds the last layer. The
-image runs as uid 10001 on a glibc base, because RocksDB's native library needs glibc.
+image runs as uid 10001 on a glibc base, because RocksDB's native library needs glibc. The
+Gradle stages run on the build machine's platform, so cross-building with `--platform linux/arm64`
+only emulates the final stage.
 
 ### Kubernetes
 
@@ -159,7 +161,7 @@ GitHub Actions:
 | Workflow | Runs | Does |
 |----------|------|------|
 | `ci.yml` | pushes to `main`, tags `v*`, and pull requests | pre-commit, commit message format (PRs), `./gradlew build`, `kustomize build` + `kubeconform` for both overlays, all in parallel; on `v*` tags also calls `e2e.yml`. On pushes, calls `images.yml` once those checks pass (and, for tags, the end-to-end test) |
-| `images.yml` | called by `ci.yml`, and PRs that touch the images | builds the app and Connect images; pushes them to GHCR (short commit hash, branch, semver, `latest`), except on PRs |
+| `images.yml` | called by `ci.yml`, and PRs that touch the images | builds the app and Connect images for `linux/amd64` and `linux/arm64`; pushes them to GHCR (short commit hash, branch, semver, `latest`), except on PRs |
 | `e2e.yml` | pushes to `main`, nightly, manual, and called by `ci.yml` for `v*` tags | the end-to-end test, uploading app and Connect logs |
 
 ## Configuration

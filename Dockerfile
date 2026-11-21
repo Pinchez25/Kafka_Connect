@@ -3,7 +3,7 @@
 #   docker build --build-arg MODULE=wallet-api -t pesaflow/wallet-api .
 #   docker build --build-arg MODULE=pesaflow-streams --build-arg PORT=8082 -t pesaflow/pesaflow-streams .
 
-FROM eclipse-temurin:25-jdk-noble AS build
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk-noble AS build
 WORKDIR /workspace
 COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY gradle gradle
@@ -22,7 +22,7 @@ ARG MODULE
 RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon --quiet ":${MODULE}:bootJar" \
     && find "${MODULE}/build/libs" -name '*.jar' ! -name '*-plain.jar' -exec cp {} /workspace/app.jar \;
 
-FROM eclipse-temurin:25-jre-noble AS layers
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jre-noble AS layers
 WORKDIR /layers
 COPY --from=build /workspace/app.jar app.jar
 RUN java -Djarmode=tools -jar app.jar extract --layers --destination extracted
