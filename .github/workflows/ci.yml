@@ -60,7 +60,6 @@ jobs:
           distribution: temurin
           java-version: "25"
       - uses: gradle/actions/setup-gradle@v5
-      # Unit tests, TopologyTestDriver tests and Testcontainers integration tests; spotlessCheck runs as part of check.
       - run: ./gradlew build --continue
       - name: Upload test reports
         if: failure()
@@ -91,13 +90,11 @@ jobs:
             echo "::endgroup::"
           done
 
-  # A release image must have passed the whole pipeline. On main, e2e.yml runs alongside instead and is not waited on.
   e2e:
     name: End-to-end
     if: startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/e2e.yml
 
-  # Every check runs in parallel; only publishing waits, so a commit that fails its own checks never becomes an image.
   images:
     name: Images
     needs: [ pre-commit, build, kubernetes, e2e ]

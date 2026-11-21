@@ -1,7 +1,5 @@
 name: Images
 
-# Publishing is driven by ci.yml, which calls this only once its checks (and, for v* tags, the end-to-end test) pass.
-# Pull requests that touch an image run it directly, to prove the images still build; nothing is pushed.
 on:
   workflow_call:
   pull_request:
@@ -63,7 +61,6 @@ jobs:
         with:
           context: ${{ matrix.context }}
           build-args: ${{ matrix.build-args }}
-          # Pull requests only prove the image builds.
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

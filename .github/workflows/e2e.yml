@@ -1,6 +1,6 @@
 name: End-to-end
 
-# Several minutes of containers, so not on every pull request. ci.yml also calls it for v* tags, to gate releases.
+# Several minutes of containers, so not on every pull request.
 on:
   workflow_call:
   push:
