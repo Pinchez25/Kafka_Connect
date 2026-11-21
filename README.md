@@ -158,9 +158,9 @@ GitHub Actions:
 
 | Workflow | Runs | Does |
 |----------|------|------|
-| `ci.yml` | pushes and pull requests | pre-commit, commit message format (PRs), `./gradlew build`, `kustomize build` + `kubeconform` for both overlays |
-| `images.yml` | pushes to `main`, tags `v*`, and PRs that touch the images | builds the app and Connect images; pushes them to GHCR (`sha-…`, branch, semver, `latest`), except on PRs |
-| `e2e.yml` | pushes to `main`, nightly, manual | the end-to-end test, uploading app and Connect logs |
+| `ci.yml` | pushes to `main`, tags `v*`, and pull requests | pre-commit, commit message format (PRs), `./gradlew build`, `kustomize build` + `kubeconform` for both overlays, all in parallel; on `v*` tags also calls `e2e.yml`. On pushes, calls `images.yml` once those checks pass (and, for tags, the end-to-end test) |
+| `images.yml` | called by `ci.yml`, and PRs that touch the images | builds the app and Connect images; pushes them to GHCR (`sha-…`, branch, semver, `latest`), except on PRs |
+| `e2e.yml` | pushes to `main`, nightly, manual, and called by `ci.yml` for `v*` tags | the end-to-end test, uploading app and Connect logs |
 
 ## Configuration
 
