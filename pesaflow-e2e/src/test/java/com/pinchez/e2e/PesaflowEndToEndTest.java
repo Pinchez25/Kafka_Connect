@@ -121,12 +121,6 @@ class PesaflowEndToEndTest {
 
         createCdcTopics();
         applyConnector("pesaflow-postgres-source", config -> {});
-        applyConnector(
-                "pesaflow-fraud-webhook",
-                config -> config.put(
-                                "http.url",
-                                "http://host.testcontainers.internal:%d/webhooks/fraud-alerts".formatted(walletPort))
-                        .put("consumer.override.auto.offset.reset", "earliest"));
 
         streams = AppProcess.start(
                 "pesaflow-streams",
