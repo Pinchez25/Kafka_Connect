@@ -153,7 +153,7 @@ services:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
 
   grafana:
-    image: grafana/grafana:12.1.0
+    image: grafana/grafana:13.3.2
     profiles: [ observability ]
     depends_on:
       - prometheus
