@@ -4,7 +4,7 @@ confluent = "8.2.0"
 lombok-mapstruct-binding = "0.2.0"
 mapstruct = "1.6.3"
 palantir-java-format = "2.103.0"
-spotless = "8.11.0"
+spotless = "8.12.0"
 spring-boot = "4.1.2"
 spring-dependency-management = "1.1.7"
 
