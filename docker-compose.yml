@@ -129,7 +129,7 @@ services:
       retries: 10
 
   kafka-ui:
-    image: kafbat/kafka-ui:v1.3.0
+    image: kafbat/kafka-ui:v1.5.1
     depends_on:
       kafka:
         condition: service_healthy
